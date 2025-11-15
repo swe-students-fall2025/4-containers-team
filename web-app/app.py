@@ -4,22 +4,24 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config["UPLOAD_FOLDER"] = "uploads"
 UPLOAD_FOLDER = "uploads"
 
-# create folder for uploads if missing 
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# create folder for uploads if missing
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-@app.route('/')
+
+@app.route("/")
 def home():
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/upload', methods=['POST'])
+
+@app.route("/upload", methods=["POST"])
 def upload_file():
-    if 'audio' not in request.files:
+    if "audio" not in request.files:
         return jsonify({"error": "no audio file"}), 400
 
-    file = request.files['audio']
+    file = request.files["audio"]
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     filename = f"audio_{timestamp}.wav"
@@ -29,5 +31,6 @@ def upload_file():
 
     return jsonify({"message": "uploaded", "filename": filename})
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app.run(debug=True)
