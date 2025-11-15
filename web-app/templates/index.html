@@ -1,16 +1,57 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>world tour by ear</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Tour by Ear - ML Activity Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h1>world tour by ear</h1>
-    <h2>record 10 seconds of yourself speaking - we bet we can guess your language!</h2>
+    <div class="container">
+        <header>
+            <h1>World Tour by Ear</h1>
+            <h2>ML Client Activity Dashboard</h2>
+        </header>
 
-    <button id="recordBtn">start recording</button>
-    <p id="status"></p>
-    <p id="countdown" style="font-size: 20px; font-weight: bold;"></p>
+        <section class="stats-section">
+            <h3>Activity Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Uploads</div>
+                    <div class="stat-value" id="total-uploads">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Analyses</div>
+                    <div class="stat-value" id="total-analyses">0</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="upload-section">
+            <h3>Record Audio</h3>
+            <p>Record 10 seconds of yourself speaking - we bet we can guess your language!</p>
+            <button id="recordBtn" class="record-btn">Start Recording</button>
+            <p id="status" class="status-text"></p>
+            <p id="countdown" class="countdown-text"></p>
+        </section>
+
+        <section class="language-distribution">
+            <h3>Detected Languages</h3>
+            <div id="language-chart" class="language-chart"></div>
+        </section>
+
+        <section class="recent-uploads">
+            <h3>Recent Uploads</h3>
+            <div id="uploads-list" class="data-list"></div>
+        </section>
+
+        <section class="recent-analyses">
+            <h3>Recent Analyses</h3>
+            <div id="analyses-list" class="data-list"></div>
+        </section>
+    </div>
+
     <script src="/static/recorder.js"></script>
+    <script src="/static/dashboard.js"></script>
 </body>
 </html>
