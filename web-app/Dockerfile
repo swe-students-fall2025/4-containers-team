@@ -2,25 +2,21 @@ FROM python:3.10-slim
 
 # Set working directory
 WORKDIR /app
-COPY . .
 
 # Install pipenv
 RUN pip install pipenv
 
-# Copy Pipfile and Pipfile.lock
+# Copy dependency files first (for caching)
 COPY Pipfile Pipfile.lock ./
 
-# Install dependencies
-RUN pipenv install
+# Install dependencies system-wide inside Docker virtual env
+RUN pipenv install --deploy --system
 
-# Copy application code
+# Copy the rest of your app
 COPY . .
 
-# Set environment variables
-ENV 
-
-# Expose port
+# Expose port Flask listens on
 EXPOSE 8000
 
-# Run the application
-CMD ["pipenv", "run", "python", "app.py"]
+# Run the Flask app
+CMD ["python", "app.py"]
