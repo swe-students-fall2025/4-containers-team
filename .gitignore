@@ -147,3 +147,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Do not upload recording files
+/uploads/*
