@@ -1,4 +1,3 @@
-
 import pymongo
 from pymongo.errors import ConnectionFailure, DuplicateKeyError
 from dotenv import load_dotenv
