@@ -23,4 +23,3 @@ EXPOSE 8000
 
 # Run the application
 CMD ["pipenv", "run", "python", "app.py"]
-
