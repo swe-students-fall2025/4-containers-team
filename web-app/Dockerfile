@@ -1,7 +1,8 @@
 FROM python:3.10-slim
 
 # Set working directory
-WORKDIR /web-app
+WORKDIR /app
+COPY . .
 
 # Install pipenv
 RUN pip install pipenv
