@@ -149,4 +149,4 @@ dmypy.json
 cython_debug/
 
 # Do not upload recording files
-/uploads/*
+web-app/uploads/
