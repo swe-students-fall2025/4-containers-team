@@ -8,8 +8,11 @@ WORKDIR /app
 COPY . .
 
 # Install pipenv
-RUN pip install pipenv
+RUN pip install pipenv \
+&& pipenv install --deploy --ignore-pipfile \
+ && pipenv run pip install openai-whisper
 
+COPY . .
 # Copy Pipfile and Pipfile.lock
 COPY Pipfile Pipfile.lock ./
 

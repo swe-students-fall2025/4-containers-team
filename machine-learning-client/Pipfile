@@ -7,7 +7,6 @@ name = "pypi"
 pymongo = "*"
 pylint = "*"
 black = "*"
-openai-whispher = "*"
 
 [dev-packages]
 pytest = "*"
