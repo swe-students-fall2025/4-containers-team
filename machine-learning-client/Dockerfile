@@ -1,5 +1,8 @@
 FROM python:3.10-slim
 
+#for whisper (stt model)
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists*
+
 # Set working directory
 WORKDIR /app
 COPY . .
