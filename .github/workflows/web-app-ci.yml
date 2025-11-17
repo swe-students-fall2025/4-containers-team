@@ -43,4 +43,3 @@ jobs:
               working-directory: ./web-app
               run: |
                   docker build -t web-app:test .
-

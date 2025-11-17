@@ -1,12 +1,14 @@
-import sys
-import os
+"""Tests for web-app"""
+
 import io
+import os
+import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import pytest
-import tempfile
-from app import app
+import pytest  # pylint: disable=wrong-import-position
+from app import app  # pylint: disable=wrong-import-position,import-error
 
 
 @pytest.fixture
@@ -19,29 +21,40 @@ def client():
 
 
 class TestHomeRoute:
-    def test_home_route_returns_200(self, client):
-        # Test that home route returns 200 status code.
+    """Test cases for home route."""
+
+    def test_home_route_returns_200(
+        self, client
+    ):  # pylint: disable=redefined-outer-name
+        """Test that home route returns 200 status code."""
         response = client.get("/")
         assert response.status_code == 200
 
-    def test_home_route_renders_template(self, client):
-        # Test that home route renders the index template.
+    def test_home_route_renders_template(
+        self, client
+    ):  # pylint: disable=redefined-outer-name
+        """Test that home route renders the index template."""
         response = client.get("/")
         assert b"World Tour by Ear" in response.data or response.status_code == 200
 
 
 class TestUploadRoute:
-    def test_upload_without_file_returns_400(self, client):
-        # Test upload route without file returns 400 error.
+    """Test cases for upload route."""
+
+    def test_upload_without_file_returns_400(
+        self, client
+    ):  # pylint: disable=redefined-outer-name
+        """Test upload route without file returns 400 error."""
         response = client.post("/upload")
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
         assert data["error"] == "no audio file"
 
-    def test_upload_with_file_returns_200(self, client):
-        # Test upload route with file returns success.
-        # Create a dummy audio file using BytesIO
+    def test_upload_with_file_returns_200(
+        self, client
+    ):  # pylint: disable=redefined-outer-name
+        """Test upload route with file returns success."""
         audio_data = b"fake audio content"
         data = {"audio": (io.BytesIO(audio_data), "test.wav")}
         response = client.post("/upload", data=data)
@@ -52,8 +65,8 @@ class TestUploadRoute:
         assert "filename" in json_data
         assert json_data["filename"].startswith("audio_")
 
-    def test_upload_saves_file(self, client):
-        # Test that uploaded file is actually saved.
+    def test_upload_saves_file(self, client):  # pylint: disable=redefined-outer-name
+        """Test that uploaded file is actually saved."""
         audio_data = b"fake audio content"
         data = {"audio": (io.BytesIO(audio_data), "test.wav")}
         response = client.post("/upload", data=data)
@@ -65,13 +78,15 @@ class TestUploadRoute:
 
 
 class TestAppConfiguration:
+    """Test cases for app configuration."""
+
     def test_app_exists(self):
-        # Test that Flask app instance exists.
+        """Test that Flask app instance exists."""
         assert app is not None
         assert app.config["UPLOAD_FOLDER"] is not None
 
     def test_upload_folder_created(self):
-        # Test that upload folder is created.
+        """Test that upload folder is created."""
         assert os.path.exists(app.config["UPLOAD_FOLDER"]) or os.path.isdir(
             app.config["UPLOAD_FOLDER"]
         )
