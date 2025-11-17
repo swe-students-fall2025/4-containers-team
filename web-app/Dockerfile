@@ -10,13 +10,13 @@ RUN pip install pipenv
 COPY Pipfile Pipfile.lock ./
 
 # Install dependencies system-wide inside Docker virtual env
-RUN pipenv install --deploy --system
+RUN pipenv install
 
 # Copy the rest of your app
 COPY . .
 
 # Expose port Flask listens on
-EXPOSE 8000
+EXPOSE 5000
 
 # Run the Flask app
-CMD ["python", "app.py"]
+CMD ["pipenv", "run", "python", "app.py"]
