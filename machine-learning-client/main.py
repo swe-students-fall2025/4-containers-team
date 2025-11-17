@@ -5,15 +5,16 @@ import sys
 from datetime import datetime
 
 from language_learner import detect_language_from_audio
-from database import save_result  
+from database import save_result
 
 DEFAULT_UPLOAD_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "web-app", "uploads")
 )
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", DEFAULT_UPLOAD_DIR)
 
+
 def find_most_recent_audio(upload_dir: str) -> str | None:
-    #Return the full path of the most recently modified audio file, or None.
+    # Return the full path of the most recently modified audio file, or None.
     if not os.path.isdir(upload_dir):
         print(f"[ERROR] Upload directory does not exist: {upload_dir}")
         return None
@@ -44,7 +45,6 @@ def main() -> int:
 
     print(f"[INFO] Using most recent audio file: {audio_path}")
 
-
     result = detect_language_from_audio(audio_path)
 
     language = result.get("language", "unknown")
@@ -64,12 +64,11 @@ def main() -> int:
 
     return 0
 
+
 def main():
     """Main entry point for ML client"""
     return
 
+
 if __name__ == "__main__":
     raise SystemExit(main())
-
-
-
