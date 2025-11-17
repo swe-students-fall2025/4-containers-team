@@ -6,6 +6,10 @@ import json
 
 from language_learner import detect_language_from_audio
 
+"""Machine Learning orchestrator."""
 
-if __name__ == "__main__":
-    print("Machine Learning Client started")
+
+def main():
+    """Main entry point for ML client"""
+    return
+
