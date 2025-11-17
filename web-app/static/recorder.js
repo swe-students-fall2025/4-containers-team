@@ -14,16 +14,33 @@ document.getElementById("recordBtn").onclick = async () => {
         countdown.textContent = "done!";
         status.textContent = "uploading audio...";
 
+        if (chunks.length === 0) {
+            status.textContent = "Error: No audio data recorded";
+            return;
+        }
+
         const blob = new Blob(chunks, { type: 'audio/webm' });
         const formData = new FormData();
         formData.append("audio", blob, "recording.webm");
 
-        await fetch("/upload", {
-            method: "POST",
-            body: formData
-        });
+        try {
+            const response = await fetch("/upload", {
+                method: "POST",
+                body: formData
+            });
 
-        status.textContent = "recording uploaded:)";
+            const data = await response.json();
+            
+            if (response.ok) {
+                status.textContent = "recording uploaded:)";
+                // Dispatch event to notify dashboard to refresh
+                document.dispatchEvent(new CustomEvent('uploadComplete'));
+            } else {
+                status.textContent = `Upload failed: ${data.error || 'Unknown error'}`;
+            }
+        } catch (error) {
+            status.textContent = `Upload failed: ${error.message}`;
+        }
     };
 
     mediaRecorder.start();
@@ -44,7 +61,10 @@ document.getElementById("recordBtn").onclick = async () => {
 
     // stop after 10 seconds
     setTimeout(() => {
-        mediaRecorder.stop();
+        if (mediaRecorder.state !== 'inactive') {
+            mediaRecorder.requestData(); // Request any remaining data
+            mediaRecorder.stop();
+        }
         status.textContent = "processing...";
     }, 10000);
 };
