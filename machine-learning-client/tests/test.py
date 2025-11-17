@@ -1,13 +1,9 @@
 """Tests for the machine-learning client."""
 
 import os
-import sys
-from pathlib import Path
 import main
 import language_learner
 import database
-
-
 
 
 # ---------------------------------------------------------------------------
@@ -50,7 +46,7 @@ def test_find_most_recent_audio_picks_newest_audio_file(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_detect_language_from_audio_calls_model_and_save_result(monkeypatch, tmp_path):
+def test_detect_language_from_audio_calls_model_and_save_result(tmp_path):
     """detect_language_from_audio should use the model and call save_result."""
     audio_path = tmp_path / "sample.wav"
     audio_path.write_bytes(b"fake audio bytes")
@@ -75,7 +71,6 @@ def test_detect_language_from_audio_calls_model_and_save_result(monkeypatch, tmp
         """Fake database save; just records the kwargs."""
         saved.update(kwargs)
 
-    # Monkeypatch the save_result used inside language_learner.
     language_learner.save_result = fake_save_result
 
     result = language_learner.detect_language_from_audio(str(audio_path))

@@ -1,9 +1,10 @@
 # The actual machine learning logic
 from database import save_result
+
 try:
-    import whisper  
-except Exception:  
-    whisper = None  
+    import whisper
+except Exception:
+    whisper = None
 
 # Only load the model if whisper is actually available.
 if whisper is not None:
@@ -14,9 +15,9 @@ else:
 
 def detect_language_from_audio(filepath):
     if model is None:
-    # Either raise, or log & return a dummy result
+        # Either raise, or log & return a dummy result
         raise RuntimeError("Whisper model is not available in this environment.")
-    
+
     result = model.transcribe(filepath)
     transcript = result.get("text", "").strip()
     lang = result.get(
