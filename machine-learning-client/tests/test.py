@@ -21,6 +21,7 @@ class TestMain:
         """Test that main function runs without error."""
         main()
         assert True
+
     def test_main_nonexistent_file(monkeypatch):
         monkeypatch.setattr(sys, "argv", ["main", "/no/such/file.wav"])
         assert main.main() != 0  # should detect missing file
@@ -44,7 +45,7 @@ class TestMain:
 
         monkeypatch.setattr(language_learner, "detect_language_from_audio", fake_detect)
 
-       #fix this later with real save_result implementation
+        # fix this later with real save_result implementation
         def fake_save_result(audio_path_, language, transcript, confidence=None):
             # just make sure it gets called with something reasonable
             assert language == "en"
@@ -55,4 +56,3 @@ class TestMain:
         # now run main; it should go through the "happy path" branch
         rc = main.main()
         assert rc == 0
-
