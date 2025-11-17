@@ -1,9 +1,9 @@
 # The actual machine learning logic
 try:
-    import whisper  # type: ignore
+    import whisper  
     model = whisper.load_model("small")
 except Exception:
-    whisper = None  # type: ignore
+    whisper = None 
     model = None
 
 from database import save_result
