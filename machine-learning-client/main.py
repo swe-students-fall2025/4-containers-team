@@ -3,7 +3,6 @@
 import os
 import sys
 from datetime import datetime
-import requests
 
 from language_learner import detect_language_from_audio
 from database import save_result
@@ -55,24 +54,7 @@ def main() -> int:
     print(f"  language   : {language}")
     print(f"  transcript : {transcript}")
 
-    # Send result to web-app (no database storage)
-    web_app_url = os.environ.get("WEB_APP_URL", "http://web-app:5000")
-    try:
-        response = requests.post(
-            f"{web_app_url}/api/ml-result",
-            json={
-                "language": language,
-                "transcript": transcript,
-                "audio_path": audio_path,
-            },
-            timeout=5,
-        )
-        if response.status_code == 200:
-            print("[INFO] Result sent to web-app successfully.")
-        else:
-            print(f"[WARNING] Failed to send result to web-app: {response.status_code}")
-    except Exception as e:
-        print(f"[WARNING] Could not send result to web-app: {e}")
+    # 2) save to MongoDB
 
     save_result(
         audio_path=audio_path,

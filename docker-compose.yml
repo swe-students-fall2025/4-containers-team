@@ -7,7 +7,7 @@ services:
         volumes:
             - mongodb_data:/data/db
         environment:
-            - MONGO_INITDB_DATABASE=proj4
+            - MONGO_INITDB_DATABASE=ml_data
         networks:
             - ml_network
         healthcheck:
@@ -25,10 +25,9 @@ services:
             mongodb:
                 condition: service_healthy
         environment:
-            - MONGO_URI=${MONGO_URI:-}
             - MONGODB_HOST=mongodb
             - MONGODB_PORT=27017
-            - MONGODB_DATABASE=proj4
+            - MONGODB_DATABASE=ml_data
             - COLLECTION_INTERVAL=60
         networks:
             - ml_network
@@ -45,10 +44,9 @@ services:
             mongodb:
                 condition: service_healthy
         environment:
-            - MONGO_URI=${MONGO_URI:-}
             - MONGODB_HOST=mongodb
             - MONGODB_PORT=27017
-            - MONGODB_DATABASE=proj4
+            - MONGODB_DATABASE=ml_data
             - PORT=5000
         networks:
             - ml_network
