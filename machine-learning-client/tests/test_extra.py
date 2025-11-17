@@ -1,11 +1,19 @@
 """Extra tests for language_learner, main, and database."""
 
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 import sys
 from pathlib import Path
 
 import language_learner
 import main
 import database
+
 
 
 def test_detect_language_from_audio_uses_model_and_saves(monkeypatch, tmp_path):

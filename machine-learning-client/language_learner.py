@@ -13,7 +13,7 @@ def detect_language_from_audio(filepath):
     )  # unkown is a place holder, whisper handles the language detection
 
     # saves to MongoDB
-    save_sample(
+    save_result(
         audio_path=filepath,
         transcript=transcript,
         lang=lang,
