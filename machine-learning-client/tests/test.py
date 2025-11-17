@@ -5,15 +5,16 @@ import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Make project root importable (so `import main` etc. works under pytest/CI)
+# Make project root importable so `import main` / `language_learner` works
 # ---------------------------------------------------------------------------
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import main  # type: ignore
-import language_learner  # type: ignore
-import database  # type: ignore
+
+import main  
+import language_learner  
+import database 
 
 
 # ---------------------------------------------------------------------------
@@ -36,19 +37,17 @@ def test_find_most_recent_audio_picks_newest_audio_file(tmp_path):
     upload_dir = tmp_path / "uploads"
     upload_dir.mkdir()
 
-    # create two files with different modification times
     old = upload_dir / "old.wav"
     new = upload_dir / "new.mp3"
 
     old.write_bytes(b"old")
-    new.write_bytes(b"newer")
+    new.write_bytes(b"new")
 
-    # make sure `old` has an older mtime than `new`
-    os.utime(old, (1, 1))  # very old timestamp
+    # Make sure old has an older mtime than new
+    os.utime(old, (1, 1))
 
     result = main.find_most_recent_audio(str(upload_dir))
 
-    # Should pick the newer audio file
     assert result is not None
     assert result.endswith("new.mp3")
 
@@ -63,11 +62,10 @@ def test_detect_language_from_audio_calls_model_and_save_result(monkeypatch, tmp
     audio_path = tmp_path / "sample.wav"
     audio_path.write_bytes(b"fake audio bytes")
 
-    class DummyModel:
+    class DummyModel:  # pylint: disable=too-few-public-methods
         """Fake Whisper model for testing."""
 
         def transcribe(self, path):
-            # ensure we were called with the correct path
             assert str(path) == str(audio_path)
             return {
                 "text": "bonjour",
@@ -75,26 +73,24 @@ def test_detect_language_from_audio_calls_model_and_save_result(monkeypatch, tmp
                 "avg_logprob": -0.2,
             }
 
-    # Replace the real Whisper model with our dummy
+    # Replace the real Whisper model with our dummy.
     language_learner.model = DummyModel()
 
-    saved = {}
+    saved: dict[str, object] = {}
 
     def fake_save_result(**kwargs):
-        # language_learner and main currently call save_result with
-        # audio_path=..., transcript=..., lang=...
+        """Fake database save; just records the kwargs."""
         saved.update(kwargs)
 
-    # Patch the save_result used inside language_learner
+    # Monkeypatch the save_result used inside language_learner.
     language_learner.save_result = fake_save_result
 
     result = language_learner.detect_language_from_audio(str(audio_path))
 
-    # Check return value for web front end
     assert result["language"] == "fr"
     assert result["transcript"] == "bonjour"
 
-    # Check that we attempted to save the result
+    # Ensure we attempted to save the right info.
     assert saved["audio_path"] == str(audio_path)
     assert saved["lang"] == "fr"
     assert saved["transcript"] == "bonjour"
@@ -110,10 +106,9 @@ def test_main_returns_1_when_no_audio_files(tmp_path, monkeypatch):
     upload_dir = tmp_path / "uploads"
     upload_dir.mkdir()
 
-    # Use our empty directory as the upload dir
+    # Use our empty directory as the upload dir.
     monkeypatch.setattr(main, "UPLOAD_DIR", str(upload_dir))
 
-    # Use real find_most_recent_audio
     exit_code = main.main()
 
     assert exit_code == 1
@@ -127,12 +122,11 @@ def test_main_happy_path_with_audio(monkeypatch, tmp_path):
     audio_file = upload_dir / "recording.webm"
     audio_file.write_bytes(b"fake audio")
 
-    # ensure it's recognized as the newest audio file
+    # Ensure this is seen as the newest audio file.
     os.utime(audio_file, (10, 10))
 
     monkeypatch.setattr(main, "UPLOAD_DIR", str(upload_dir))
 
-    # Fake language detection
     def fake_detect_language_from_audio(path):
         assert str(path) == str(audio_file)
         return {
@@ -142,9 +136,10 @@ def test_main_happy_path_with_audio(monkeypatch, tmp_path):
 
     monkeypatch.setattr(main, "detect_language_from_audio", fake_detect_language_from_audio)
 
-    saved = {}
+    saved: dict[str, object] = {}
 
     def fake_save_result(**kwargs):
+        """Fake database save; just records kwargs from main.main."""
         saved.update(kwargs)
 
     monkeypatch.setattr(main, "save_result", fake_save_result)
@@ -153,7 +148,7 @@ def test_main_happy_path_with_audio(monkeypatch, tmp_path):
 
     assert exit_code == 0
     assert saved["audio_path"] == str(audio_file)
-    # note: your code passes the kwarg name "lang", not "language"
+    # Note: your code uses 'lang' as the kwarg name.
     assert saved["lang"] == "en"
     assert saved["transcript"] == "hello world"
 
@@ -165,7 +160,6 @@ def test_main_happy_path_with_audio(monkeypatch, tmp_path):
 
 def test_database_save_result_is_callable():
     """database.save_result should accept arguments and not raise."""
-    # Currently this is just a stub (`pass`), but we still exercise it
     database.save_result(
         audio_path="some/path.wav",
         language="en",
