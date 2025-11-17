@@ -55,6 +55,7 @@ def main() -> int:
     print(f"  transcript : {transcript}")
 
     # 2) save to MongoDB
+
     save_result(
         audio_path=audio_path,
         lang=language,
@@ -63,6 +64,7 @@ def main() -> int:
     print("[INFO] Saved result to MongoDB.")
 
     return 0
+
 
 
 if __name__ == "__main__":

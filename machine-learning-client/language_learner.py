@@ -1,14 +1,15 @@
 # The actual machine learning logic
+from database import save_result
 try:
     import whisper  
-    model = whisper.load_model("small")
-except Exception:
-    whisper = None 
+except Exception:  
+    whisper = None  
+
+# Only load the model if whisper is actually available.
+if whisper is not None:
+    model = whisper.load_model("tiny")
+else:
     model = None
-
-from database import save_result
-
-model = whisper.load_model("tiny")
 
 
 def detect_language_from_audio(filepath):

@@ -3,18 +3,11 @@
 import os
 import sys
 from pathlib import Path
-
-# ---------------------------------------------------------------------------
-# Make project root importable so `import main` / `language_learner` works
-# ---------------------------------------------------------------------------
-ROOT = Path(__file__).resolve().parent.parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+import main
+import language_learner
+import database
 
 
-import main  
-import language_learner  
-import database 
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +127,9 @@ def test_main_happy_path_with_audio(monkeypatch, tmp_path):
             "transcript": "hello world",
         }
 
-    monkeypatch.setattr(main, "detect_language_from_audio", fake_detect_language_from_audio)
+    monkeypatch.setattr(
+        main, "detect_language_from_audio", fake_detect_language_from_audio
+    )
 
     saved: dict[str, object] = {}
 
