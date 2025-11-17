@@ -1,6 +1,6 @@
 # The actual machine learning logic
 import whisper
-from database import save_sample
+from database import save_result
 
 model = whisper.load_model("tiny")
 
