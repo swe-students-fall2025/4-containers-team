@@ -55,6 +55,7 @@ def test_detect_language_from_audio_calls_model_and_save_result(tmp_path):
         """Fake Whisper model for testing."""
 
         def transcribe(self, path):
+            """dummy transcribe method that transcribes audio"""
             assert str(path) == str(audio_path)
             return {
                 "text": "bonjour",
