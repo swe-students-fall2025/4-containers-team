@@ -20,10 +20,10 @@ try:
     client = pymongo.MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
     # Test the connection
     db = client[database_name]
-    
+
     # Initialize GridFS for file storage
     fs = GridFS(db)
-    
+
     # Collection for metadata about uploads
     audio_uploads_collection = db["audio_uploads"]
     # Collection for analysis results
@@ -31,7 +31,9 @@ try:
     print(f"Successfully connected to MongoDB database '{database_name}'")
     print(f"Using collection: 'audio_uploads'")
     print(f"Using collection: 'analyses'")
-    print(f"GridFS will store files in: '{database_name}.fs.files' and '{database_name}.fs.chunks'")
+    print(
+        f"GridFS will store files in: '{database_name}.fs.files' and '{database_name}.fs.chunks'"
+    )
 except Exception as e:
     error_msg = f"Failed to connect to MongoDB at {mongo_uri}: {e}"
     print(f"ERROR: {error_msg}")

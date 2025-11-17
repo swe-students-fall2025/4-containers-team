@@ -63,9 +63,9 @@ def main() -> int:
             json={
                 "language": language,
                 "transcript": transcript,
-                "audio_path": audio_path
+                "audio_path": audio_path,
             },
-            timeout=5
+            timeout=5,
         )
         if response.status_code == 200:
             print("[INFO] Result sent to web-app successfully.")
