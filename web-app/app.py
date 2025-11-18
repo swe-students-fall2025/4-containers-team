@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = "uploads"
+app.config["UPLOAD_FOLDER"] = "/uploads"
 
 # create folder for uploads if missing
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
