@@ -1,16 +1,25 @@
-"""Test suite for Flask app routes and behavior."""
+"""Full test suite for the app"""
+
+from datetime import datetime
+from unittest.mock import MagicMock, patch
 import io
 import os
 import sys
 import tempfile
-from datetime import datetime
-from unittest.mock import MagicMock, patch
+
 import pytest
 
-# Ensure app.py is importable
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
-from app import app, ml_results_cache
+# pylint: disable=import-error, wrong-import-position
+from app import (
+    app,
+    ml_results_cache,
+)
+
+# pylint: enable=import-error, wrong-import-position
 
 
 @pytest.fixture(autouse=True)
@@ -20,13 +29,14 @@ def reset_cache():
     yield
 
 
-@pytest.fixture
-def client_fixture(name="client"):
+@pytest.fixture(name="client")
+def client_fixture():
     """Create a test client with temp upload folder."""
     app.config["TESTING"] = True
     app.config["UPLOAD_FOLDER"] = tempfile.mkdtemp()
     with app.test_client() as test_client:
         yield test_client
+
 
 class TestHomeRoute:
     """Tests for the home route ('/')."""
