@@ -8,10 +8,8 @@ import requests
 from language_learner import detect_language_from_audio
 from database import save_result
 
-DEFAULT_UPLOAD_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "web-app", "uploads")
-)
-UPLOAD_DIR = os.environ.get("UPLOAD_DIR", DEFAULT_UPLOAD_DIR)
+
+upload_dir = "/uploads"
 
 
 def find_most_recent_audio(upload_dir: str) -> str | None:
@@ -38,8 +36,8 @@ def find_most_recent_audio(upload_dir: str) -> str | None:
 
 
 def main() -> int:
-    print(f"[INFO] Looking for latest audio in: {UPLOAD_DIR}")
-    audio_path = find_most_recent_audio(UPLOAD_DIR)
+    print(f"[INFO] Looking for latest audio in: {upload_dir}")
+    audio_path = find_most_recent_audio(upload_dir)
 
     if audio_path is None:
         return 1

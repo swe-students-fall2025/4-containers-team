@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify, request
 import os
 from datetime import datetime
+from pathlib import Path
 from pymongo.errors import ConnectionFailure
 
 try:
@@ -12,7 +13,12 @@ except ConnectionFailure as e:
     analyses_collection = None
 
 app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = "uploads"
+
+BASE_DIR = Path(__file__).resolve().parent
+default_upload = BASE_DIR / "uploads"
+
+app.config["UPLOAD_FOLDER"] = os.environ.get("UPLOAD_FOLDER", str(default_upload))
+
 
 # create folder for uploads if missing
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
