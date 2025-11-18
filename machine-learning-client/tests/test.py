@@ -11,6 +11,33 @@ import database
 # ---------------------------------------------------------------------------
 
 
+def test_find_most_recent_audio_nonexistent_dir_returns_none(tmp_path):
+    """If the directory does not exist, return None."""
+    bogus_dir = tmp_path / "does_not_exist"
+
+    result = main.find_most_recent_audio(str(bogus_dir))
+
+    assert result is None
+
+
+def test_find_most_recent_audio_only_non_audio_files_returns_none(tmp_path, capsys):
+    """
+    Directory exists but has no audio files (only non-audio) -> returns None
+    and prints the INFO message.
+    """
+    upload_dir = tmp_path / "uploads"
+    upload_dir.mkdir()
+
+    # non-audio file should be ignored
+    (upload_dir / "notes.txt").write_text("not audio")
+
+    result = main.find_most_recent_audio(str(upload_dir))
+
+    captured = capsys.readouterr()
+    assert f"No audio files found in {upload_dir}" in captured.out
+    assert result is None
+
+
 def test_find_most_recent_audio_empty_dir_returns_none(tmp_path):
     """If the upload directory is empty, find_most_recent_audio returns None."""
     upload_dir = tmp_path / "uploads"
@@ -96,7 +123,7 @@ def test_main_returns_1_when_no_audio_files(tmp_path, monkeypatch):
     upload_dir.mkdir()
 
     # Use our empty directory as the upload dir.
-    monkeypatch.setattr(main, "UPLOAD_DIR", str(upload_dir))
+    monkeypatch.setattr(main, "upload_dir", str(upload_dir))
 
     exit_code = main.main()
 
@@ -114,7 +141,7 @@ def test_main_happy_path_with_audio(monkeypatch, tmp_path):
     # Ensure this is seen as the newest audio file.
     os.utime(audio_file, (10, 10))
 
-    monkeypatch.setattr(main, "UPLOAD_DIR", str(upload_dir))
+    monkeypatch.setattr(main, "upload_dir", str(upload_dir))
 
     def fake_detect_language_from_audio(path):
         assert str(path) == str(audio_file)
