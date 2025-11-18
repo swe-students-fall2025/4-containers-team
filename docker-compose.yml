@@ -30,6 +30,9 @@ services:
             - MONGODB_PORT=27017
             - MONGODB_DATABASE=proj4
             - COLLECTION_INTERVAL=60
+            - UPLOAD_DIR=/shared/uploads #Added upload directory env var
+        volumes:
+            - uploads_data:/shared/uploads #shared volume for uploads, allows us to access files uploaded via web-app
         networks:
             - ml_network
         restart: unless-stopped
@@ -50,12 +53,16 @@ services:
             - MONGODB_PORT=27017
             - MONGODB_DATABASE=proj4
             - PORT=5000
+            - UPLOAD_FOLDER=/shared/uploads #Added an upload folder env var, lets us share the volume with ml-client
         networks:
             - ml_network
+        volumes: #shared volume for uploads between web-app and ml-client
+            - uploads_data:/shared/uploads
         restart: unless-stopped
 
 volumes:
     mongodb_data:
+    uploads_data:
 
 networks:
     ml_network:

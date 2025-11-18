@@ -8,8 +8,11 @@ import requests
 from language_learner import detect_language_from_audio
 from database import save_result
 
-
-upload_dir = "/uploads"
+#This is the directory where audio uploads are stored now.
+#Did this to match the web-app's /shared/uploads mount to the ML client.
+DEFAULT_UPLOAD_DIR = "/shared/uploads"
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", DEFAULT_UPLOAD_DIR)
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 def find_most_recent_audio(upload_dir: str) -> str | None:
@@ -36,8 +39,8 @@ def find_most_recent_audio(upload_dir: str) -> str | None:
 
 
 def main() -> int:
-    print(f"[INFO] Looking for latest audio in: {upload_dir}")
-    audio_path = find_most_recent_audio(upload_dir)
+    print(f"[INFO] Looking for latest audio in: {UPLOAD_DIR}")
+    audio_path = find_most_recent_audio(UPLOAD_DIR)
 
     if audio_path is None:
         return 1
