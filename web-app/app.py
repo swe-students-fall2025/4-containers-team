@@ -68,7 +68,10 @@ def get_analyses():
             if "file_id" in analysis:
                 analysis["file_id"] = str(analysis["file_id"])
             if "analysis_date" in analysis:
-                analysis["analysis_date"] = analysis["analysis_date"].isoformat()
+                if "analysis_date" in analysis and analysis["analysis_date"]:
+                    analysis["analysis_date"] = analysis["analysis_date"].isoformat()
+                else:
+                    analysis["analysis_date"] = None
 
         return jsonify({"analyses": analyses, "total": len(analyses)})
     except Exception as e:
@@ -82,7 +85,7 @@ def get_analyses():
 def receive_ml_result():
     """Receive ML analysis result from ML client (no database storage)"""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
         if not data:
             return jsonify({"error": "No data provided"}), 400
@@ -168,7 +171,10 @@ def get_uploads():
             if "file_id" in upload:
                 upload["file_id"] = str(upload["file_id"])
             if "upload_date" in upload:
-                upload["upload_date"] = upload["upload_date"].isoformat()
+                if "upload_date" in upload and upload["upload_date"]:
+                    upload["upload_date"] = upload["upload_date"].isoformat()
+                else:
+                    upload["upload_date"] = None
 
         return jsonify({"uploads": uploads, "total": len(uploads)})
     except Exception as e:
