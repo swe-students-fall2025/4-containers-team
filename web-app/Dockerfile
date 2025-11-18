@@ -10,7 +10,7 @@ RUN pip install pipenv
 COPY Pipfile Pipfile.lock ./
 
 # Install dependencies system-wide inside Docker virtual env
-RUN pipenv install
+RUN pipenv install --dev
 
 # Copy the rest of your app
 COPY . .
