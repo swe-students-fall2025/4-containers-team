@@ -11,7 +11,7 @@ from database import save_result
 upload_dir = "/uploads"
 
 
-def find_most_recent_audio() -> str | None:
+def find_most_recent_audio(upload_dir: str) -> str | None:
     # Return the full path of the most recently modified audio file, or None.
     if not os.path.isdir(upload_dir):
         print(f"[ERROR] Upload directory does not exist: {upload_dir}")
@@ -36,7 +36,7 @@ def find_most_recent_audio() -> str | None:
 
 def main() -> int:
     print(f"[INFO] Looking for latest audio in: {upload_dir}")
-    audio_path = find_most_recent_audio()
+    audio_path = find_most_recent_audio(upload_dir)
 
     if audio_path is None:
         return 1

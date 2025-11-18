@@ -153,6 +153,6 @@ def test_database_save_result_is_callable():
     """database.save_result should accept arguments and not raise."""
     database.save_result(
         audio_path="some/path.wav",
-        language="en",
+        lang="en",
         transcript="hello world",
     )
