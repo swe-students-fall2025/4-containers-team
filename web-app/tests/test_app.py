@@ -1,4 +1,4 @@
-# pylint: disable=R0903,too-few-public-methods,wrong-import-position
+# pylint: disable=R0903,too-few-public-methods,wrong-import-position,missing-class-docstring,missing-function-docstring,import-outside-toplevel
 """Unit tests for app API routes."""
 
 import os
@@ -9,12 +9,16 @@ from datetime import datetime
 from unittest.mock import patch, MagicMock
 import pytest
 
-# Ensure project root is on path BEFORE importing app
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
+# Ensure project root is on sys.path
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, ROOT)
 
-from app import app  # noqa: E402
+try:
+    from app import app  # noqa: E402
+except ImportError:
+    ALT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../app"))
+    sys.path.insert(0, ALT_ROOT)
+    from app import app  # noqa: E402
 
 
 # ================================================================
@@ -34,6 +38,7 @@ def client_fixture():
 # HOME ROUTE
 # ================================================================
 
+
 class TestHomeRoute:
     def test_home_ok(self, client):
         resp = client.get("/")
@@ -43,6 +48,7 @@ class TestHomeRoute:
 # ================================================================
 # /upload
 # ================================================================
+
 
 class TestUploadRoute:
 
@@ -91,6 +97,7 @@ class TestUploadRoute:
 # /api/stats
 # ================================================================
 
+
 class TestStatsRoute:
 
     @patch("app.audio_uploads_collection")
@@ -115,8 +122,9 @@ class TestStatsRoute:
 
 
 # ================================================================
-# /api/ml-results 
+# /api/ml-results
 # ================================================================
+
 
 class TestMLResults:
 
@@ -136,6 +144,7 @@ class TestMLResults:
 # ================================================================
 # /api/languages  (cache-based)
 # ================================================================
+
 
 class TestLanguages:
 
@@ -168,6 +177,7 @@ class TestLanguages:
 # ================================================================
 # /api/uploads
 # ================================================================
+
 
 class TestUploads:
 
