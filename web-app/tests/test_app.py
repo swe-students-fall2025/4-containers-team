@@ -1,6 +1,6 @@
-# pylint: disable=R0903,too-few-public-methods
+# pylint: disable=R0903,too-few-public-methods,wrong-import-position
 """Unit tests for app API routes."""
-
+from app import app, ml_results_cache, MAX_CACHE_SIZE
 import os
 import io
 import sys
@@ -14,12 +14,11 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from app import app, ml_results_cache, MAX_CACHE_SIZE  # noqa
-
 
 # =====================================================================
 # FIXTURES
 # =====================================================================
+
 
 @pytest.fixture(autouse=True)
 def reset_cache():
@@ -41,6 +40,7 @@ def client_fixture():
 # HOME ROUTE
 # =====================================================================
 
+
 class TestHomeRoute:
     """Tests for the home route."""
 
@@ -53,6 +53,7 @@ class TestHomeRoute:
 # =====================================================================
 # /upload
 # =====================================================================
+
 
 class TestUploadRoute:
     """Tests for the /upload route."""
@@ -103,6 +104,7 @@ class TestUploadRoute:
 # /api/stats
 # =====================================================================
 
+
 class TestStatsRoute:
     """Tests for /api/stats."""
 
@@ -133,6 +135,7 @@ class TestStatsRoute:
 # =====================================================================
 # /api/ml-result (POST)
 # =====================================================================
+
 
 class TestMLResultPost:
     """Tests for POST /api/ml-result."""
@@ -166,6 +169,7 @@ class TestMLResultPost:
 # /api/ml-results
 # =====================================================================
 
+
 class TestMLResults:
     """Tests for GET /api/ml-results."""
 
@@ -188,6 +192,7 @@ class TestMLResults:
 # =====================================================================
 # /api/languages
 # =====================================================================
+
 
 class TestLanguageDistribution:
     """Tests for GET /api/languages."""
@@ -219,6 +224,7 @@ class TestLanguageDistribution:
 # =====================================================================
 # /api/uploads
 # =====================================================================
+
 
 class TestUploads:
     """Tests for GET /api/uploads."""
