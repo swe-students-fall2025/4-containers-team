@@ -1,6 +1,4 @@
-"""Unit tests for the machine-learning client."""
-
-from __future__ import annotations
+"""Tests for the machine-learning client."""
 
 import os
 
@@ -99,8 +97,10 @@ def test_process_one_file_handles_request_exception(monkeypatch):
     monkeypatch.setattr(main.requests, "post", fake_post)
 
     # Force os.unlink to raise so we cover that branch as well.
-    monkeypatch.setattr(os, "unlink", lambda *_: (_ for _ in ()).throw(OSError()))
+    def raise_os_error(*_args, **_kwargs):
+        raise OSError("cleanup failure")
 
+    monkeypatch.setattr(os, "unlink", raise_os_error)
     assert main.process_one_file() is True
     assert saved_docs["audio_path"] == "sample.wav"
 
@@ -128,7 +128,10 @@ def test_detect_language_from_audio_with_model(monkeypatch, tmp_path):
     audio_path.write_bytes(b"audio-bytes")
 
     class DummyModel:  # pylint: disable=too-few-public-methods
+        """Simple Whisper stand-in for tests."""
+
         def transcribe(self, filepath):
+            """Return a predictable transcription payload."""
             assert str(filepath) == str(audio_path)
             return {"text": "ciao", "language": "it"}
 
@@ -188,8 +191,12 @@ def test_main_sleeps_after_success(monkeypatch):
         raise KeyboardInterrupt
 
     sleeps: list[int] = []
+
+    def record_sleep(seconds):
+        sleeps.append(seconds)
+
     monkeypatch.setattr(main, "process_one_file", fake_process)
-    monkeypatch.setattr(main.time, "sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(main.time, "sleep", record_sleep)
     monkeypatch.setattr(main.os, "environ", {"COLLECTION_INTERVAL": "60"})
 
     main.main()
@@ -209,8 +216,12 @@ def test_main_waits_when_no_files(monkeypatch):
         raise KeyboardInterrupt
 
     sleeps: list[int] = []
+
+    def record_sleep(seconds):
+        sleeps.append(seconds)
+
     monkeypatch.setattr(main, "process_one_file", fake_process)
-    monkeypatch.setattr(main.time, "sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(main.time, "sleep", record_sleep)
     monkeypatch.setattr(main.os, "environ", {"COLLECTION_INTERVAL": "10"})
 
     main.main()
@@ -230,8 +241,12 @@ def test_main_handles_unexpected_exception(monkeypatch):
         raise KeyboardInterrupt
 
     sleeps: list[int] = []
+
+    def record_sleep(seconds):
+        sleeps.append(seconds)
+
     monkeypatch.setattr(main, "process_one_file", fake_process)
-    monkeypatch.setattr(main.time, "sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(main.time, "sleep", record_sleep)
     monkeypatch.setattr(main.os, "environ", {"COLLECTION_INTERVAL": "1"})
 
     main.main()

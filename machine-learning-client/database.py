@@ -1,5 +1,4 @@
-# database
-
+"""MongoDB helpers for the machine-learning client."""
 
 # Overall: get the MongoDB connection from env variables,
 # build the document to store, and save the analysis result.
@@ -10,6 +9,7 @@
 from datetime import datetime
 import os
 from typing import Any, Optional
+import traceback
 
 # MongoDB driver imports
 from pymongo import MongoClient
@@ -22,19 +22,22 @@ from bson import ObjectId
 # Connection configuration
 # ---------------------------------------------------------------------------
 
-# Looks for MongoDB connection URI from env var
-MONGO_URI = os.getenv("MONGO_URI")
-# If it doesn't exist, build it from components saved
-if not MONGO_URI:
+
+def _default_mongo_uri() -> str:
+    """Build the Mongo URI from discrete environment variables."""
     host = os.getenv("MONGODB_HOST", "mongodb")
     port = os.getenv("MONGODB_PORT", "27017")
     username = os.getenv("MONGODB_USERNAME")
     password = os.getenv("MONGODB_PASSWORD")
 
-    credentials = ""
+    credentials_fragment = ""
     if username and password:
-        credentials = f"{username}:{password}@"
-    MONGO_URI = f"mongodb://{credentials}{host}:{port}/"
+        credentials_fragment = f"{username}:{password}@"
+    return f"mongodb://{credentials_fragment}{host}:{port}/"
+
+
+# Looks for MongoDB connection URI from env var
+MONGO_URI = os.getenv("MONGO_URI") or _default_mongo_uri()
 
 # Picks the database name, defaulting to "proj4"
 DATABASE_NAME = os.getenv("MONGODB_DATABASE", "proj4")
@@ -45,7 +48,7 @@ _db: Optional[Any] = None
 _collection: Optional[Collection] = None
 _fs: Optional[GridFS] = None
 _audio_uploads_collection: Optional[Collection] = None
-_db_available = False
+_db_available = False  # pylint: disable=invalid-name
 
 # Fallback store used in tests or when MongoDB is offline.
 _in_memory_store: list[dict[str, Any]] = []
@@ -112,6 +115,7 @@ def save_result(
     transcript: Optional[str] = None,
     extra_fields: Optional[dict[str, Any]] = None,
 ) -> Any:
+    """Persist an analysis document to MongoDB or the in-memory fallback."""
     # decides on the detected language or falls back to "unknown"
     detected_language = language or lang or "unknown"
     document = _build_document(
@@ -135,25 +139,27 @@ def save_result(
             # Verify the document was actually saved
             verify_doc = _collection.find_one({"_id": inserted_id})
             if verify_doc:
-                print(f"[INFO] Verified: Document exists in database")
+                print("[INFO] Verified: Document exists in database")
             else:
-                print(
-                    f"[WARNING] Verification failed: Document not found after insert!"
-                )
+                print("[WARNING] Verification failed: Document not found after insert!")
 
             return inserted_id
         except PyMongoError as exc:
-            import traceback
-
+            print(f"[ERROR] Failed to store analysis in MongoDB: {exc}")
             traceback.print_exc()
     else:
-        print(
-            f"[WARNING] Database not available. _db_available={_db_available}, _collection={_collection}"
+        warning_msg = (
+            "[WARNING] Database not available. "
+            f"_db_available={_db_available}, _collection={_collection}"
         )
+        print(warning_msg)
         if _collection is None:
-            print(
-                f"[WARNING] Collection is None. DATABASE_NAME='{DATABASE_NAME}', ANALYSES_COLLECTION='{ANALYSES_COLLECTION}'"
+            collection_warning = (
+                "[WARNING] Collection is None. "
+                f"DATABASE_NAME='{DATABASE_NAME}', "
+                f"ANALYSES_COLLECTION='{ANALYSES_COLLECTION}'"
             )
+            print(collection_warning)
 
     # This is a fallback to in-memory storage if DB isn't working
     print("[WARNING] Falling back to in-memory storage (data will be lost on restart)")
@@ -164,6 +170,7 @@ def save_result(
 
 # Retrieves all cached results from in-memory store
 def get_cached_results() -> list[dict[str, Any]]:
+    """Return a shallow copy of the in-memory analysis cache."""
     return list(_in_memory_store)
 
 
@@ -234,11 +241,13 @@ def get_most_recent_unprocessed_audio_file() -> Optional[tuple[str, bytes]]:
                     f"[INFO] Retrieved unprocessed audio file from GridFS: {filename}"
                 )
                 return (filename, file_content)
-            except Exception as e:
+            except (PyMongoError, OSError) as grid_err:
+                print(f"[WARNING] Failed to fetch GridFS file {file_id}: {grid_err}")
                 continue
 
         return None
 
-    except Exception as e:
-        print(f"[WARNING] Failed to get audio file from GridFS: {e}")
+    except PyMongoError as exc:
+        print(f"[WARNING] Failed to get audio file from GridFS: {exc}")
+        traceback.print_exc()
         return None

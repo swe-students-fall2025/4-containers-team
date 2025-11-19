@@ -1,15 +1,15 @@
-# The actual machine learning logic
+"""Language detection helper that wraps Whisper."""
 
 try:
-    import whisper
-except Exception:
-    whisper = None
+    import whisper  # pylint: disable=import-error
+except ImportError:
+    whisper = None  # pylint: disable=invalid-name
 
 # Only load the model if whisper is actually available.
 if whisper is not None:
-    model = whisper.load_model("tiny")
+    model = whisper.load_model("tiny")  # pylint: disable=invalid-name
 else:
-    model = None
+    model = None  # pylint: disable=invalid-name
 
 
 def detect_language_from_audio(filepath):
