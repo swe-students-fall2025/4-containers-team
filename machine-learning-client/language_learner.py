@@ -1,5 +1,4 @@
 # The actual machine learning logic
-from database import save_result
 
 try:
     import whisper
@@ -14,6 +13,9 @@ else:
 
 
 def detect_language_from_audio(filepath):
+    """
+    Detect language and transcribe audio using Whisper.
+    """
     if model is None:
         # Either raise, or log & return a dummy result
         raise RuntimeError("Whisper model is not available in this environment.")
@@ -24,14 +26,6 @@ def detect_language_from_audio(filepath):
         "language", "unknown"
     )  # unkown is a place holder, whisper handles the language detection
 
-    # saves to MongoDB
-    save_result(
-        audio_path=filepath,
-        transcript=transcript,
-        lang=lang,
-    )
-
-    # this is to display for web app front end
     return {
         "language": lang,
         "transcript": transcript,

@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from pymongo.errors import ConnectionFailure
+from bson import ObjectId
 from database import get_all_results, save_result
 
 try:
@@ -34,6 +35,7 @@ MAX_CACHE_SIZE = 100  # Keep last 100 results
 def home():
     return render_template("index.html")
 
+
 @app.route("/api/stats", methods=["GET"])
 def get_stats():
     if audio_uploads_collection is None:
@@ -46,6 +48,7 @@ def get_stats():
 
     except Exception as e:
         import traceback
+
         print(traceback.format_exc())
         return jsonify({"error": f"Failed to get stats: {str(e)}"}), 500
 
@@ -82,74 +85,40 @@ def get_analyses():
         return jsonify({"error": f"Failed to get analyses: {str(e)}"}), 500
 
 
-# @app.route("/api/ml-result", methods=["POST"])
-# def receive_ml_result():
-#     """Receive ML analysis result from ML client (no database storage)"""
-#     try:
-#         data = request.get_json(silent=True)
-
-#         if not data:
-#             return jsonify({"error": "No data provided"}), 400
-
-#         # Add timestamp
-#         result = {
-#             "language": data.get("language", "unknown"),
-#             "transcript": data.get("transcript", ""),
-#             "timestamp": datetime.now().isoformat(),
-#             "audio_path": data.get("audio_path", ""),
-#         }
-
-#         # Add to cache (most recent first)
-#         ml_results_cache.insert(0, result)
-
-#         # Keep only recent results
-#         if len(ml_results_cache) > MAX_CACHE_SIZE:
-#             ml_results_cache.pop()
-
-#         print(f"[INFO] Received ML result: language={result['language']}")
-#         return jsonify({"message": "Result received", "result": result}), 200
-
-#     except Exception as e:
-#         import traceback
-
-#         print(traceback.format_exc())
-#         return jsonify({"error": f"Failed to receive result: {str(e)}"}), 500
-
 @app.route("/api/ml-result", methods=["POST"])
 def receive_ml_result():
-    """Receive ML result and store permanently in MongoDB"""
+    """Receive ML result from ML client (for display/cache only, not database storage)."""
     try:
         data = request.get_json(silent=True)
 
         if not data:
             return jsonify({"error": "No data provided"}), 400
 
-        inserted_id = save_result(
-            audio_path=data.get("audio_path", ""),
-            language=data.get("language", "unknown"),
-            transcript=data.get("transcript", "")
-        )
+        # Add to cache for immediate display (ML client already saved to DB)
+        result = {
+            "language": data.get("language", "unknown"),
+            "transcript": data.get("transcript", ""),
+            "timestamp": datetime.now().isoformat(),
+            "audio_path": data.get("audio_path", ""),
+        }
 
-        return jsonify({"message": "saved", "id": str(inserted_id)}), 200
+        # Add to cache (most recent first)
+        ml_results_cache.insert(0, result)
+
+        # Keep only recent results
+        if len(ml_results_cache) > MAX_CACHE_SIZE:
+            ml_results_cache.pop()
+
+        print(f"[INFO] Received ML result (cached): language={result['language']}")
+        return jsonify({"message": "Result received and cached", "result": result}), 200
 
     except Exception as e:
         import traceback
+
         print(traceback.format_exc())
-        return jsonify(
-            {"error": f"Failed to save analysis: {str(e)}"}
-        ), 500
+        return jsonify({"error": f"Failed to receive result: {str(e)}"}), 500
 
 
-# @app.route("/api/ml-results", methods=["GET"])
-# def get_ml_results():
-#     """Get recent ML results from cache (no database)"""
-#     try:
-#         limit = int(request.args.get("limit", 10))
-#         results = ml_results_cache[:limit]
-
-#         return jsonify({"results": results, "total": len(ml_results_cache)})
-#     except Exception as e:
-#         return jsonify({"error": f"Failed to get results: {str(e)}"}), 500
 @app.route("/api/ml-results", methods=["GET"])
 def get_ml_results():
     """Fetch recent ML results from MongoDB"""
@@ -221,56 +190,80 @@ def get_uploads():
         return jsonify({"error": f"Failed to get uploads: {str(e)}"}), 500
 
 
-# @app.route("/upload", methods=["POST"])
-# def upload_file():
-#     if "audio" not in request.files:
-#         return jsonify({"error": "no audio file"}), 400
+@app.route("/api/latest-analysis", methods=["GET"])
+def get_latest_analysis():
+    """
+    Get analysis for a specific upload (identified by upload_id).
+    """
+    if audio_uploads_collection is None or analyses_collection is None:
+        return jsonify({"error": "database connection not available"}), 503
 
-#     file = request.files["audio"]
+    try:
+        # Get upload_id from query parameter
+        upload_id = request.args.get("upload_id")
 
-#     if file.filename == "":
-#         return jsonify({"error": "no file selected"}), 400
+        if not upload_id:
+            # No upload_id provided - user hasn't uploaded anything
+            return jsonify({"has_upload": False})
 
-#     # Check if database is connected
-#     if fs is None or audio_uploads_collection is None:
-#         return jsonify({"error": "database connection not available"}), 503
+        # Find the specific upload by ID
+        try:
+            upload = audio_uploads_collection.find_one({"_id": ObjectId(upload_id)})
+        except Exception:
+            # Invalid ObjectId format
+            return jsonify({"has_upload": False})
 
-#     # Generate timestamped filename
-#     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-#     filename = f"audio_{timestamp}.wav"
+        if upload is None:
+            # Upload not found
+            return jsonify({"has_upload": False})
 
-#     try:
-#         # Read file content
-#         file_content = file.read()
+        filename = upload.get("filename", "")
 
-#         # Store file in GridFS
-#         file_id = fs.put(
-#             file_content,
-#             filename=filename,
-#             content_type=file.content_type or "audio/wav",
-#         )
+        # Look for corresponding analysis by matching filename
+        analysis = analyses_collection.find_one({"audio_path": filename})
 
-#         # Store metadata in collection
-#         metadata = {
-#             "file_id": file_id,
-#             "filename": filename,
-#             "upload_date": datetime.now(),
-#             "content_type": file.content_type or "audio/wav",
-#             "size": len(file_content),
-#         }
+        if analysis is None:
+            # Upload exists but analysis not ready yet
+            return jsonify(
+                {
+                    "has_upload": True,
+                    "status": "processing",
+                    "filename": filename,
+                    "upload_id": upload_id,
+                    "upload_date": (
+                        upload.get("upload_date").isoformat()
+                        if upload.get("upload_date")
+                        else None
+                    ),
+                }
+            )
 
-#         audio_uploads_collection.insert_one(metadata)
+        # Analysis exists - return it
+        analysis["_id"] = str(analysis["_id"])
+        if "analysis_date" in analysis and analysis["analysis_date"]:
+            analysis["analysis_date"] = analysis["analysis_date"].isoformat()
 
-#         return (
-#             jsonify(
-#                 {"message": "uploaded", "filename": filename, "file_id": str(file_id)}
-#             ),
-#             200,
-#         )
-#     except ConnectionFailure as e:
-#         return jsonify({"error": f"database connection failed: {str(e)}"}), 503
-#     except Exception as e:
-#         return jsonify({"error": f"upload failed: {str(e)}"}), 500
+        return jsonify(
+            {
+                "has_upload": True,
+                "status": "completed",
+                "filename": filename,
+                "upload_id": upload_id,
+                "analysis": {
+                    "language": analysis.get("language", "unknown"),
+                    "transcript": analysis.get("transcript", ""),
+                    "analysis_date": analysis.get("analysis_date"),
+                },
+            }
+        )
+
+    except Exception as e:
+        import traceback
+
+        print(traceback.format_exc())
+        return jsonify({"error": f"Failed to get latest analysis: {str(e)}"}), 500
+
+
 @app.route("/upload", methods=["POST"])
 def upload_file():
     if "audio" not in request.files:
@@ -291,20 +284,14 @@ def upload_file():
         # Read file content
         file_content = file.read()
 
-        # ----------------------------------------------------------
-        # SAVE TO SHARED /uploads so ML-client can process it
-        # ----------------------------------------------------------
-        upload_path = os.path.join("/uploads", filename)
-        with open(upload_path, "wb") as f:
-            f.write(file_content)
-
-        # Also store in GridFS (optional)
+        # Store file in GridFS
         file_id = fs.put(
             file_content,
             filename=filename,
             content_type=file.content_type or "audio/wav",
         )
 
+        # Store metadata in collection
         metadata = {
             "file_id": file_id,
             "filename": filename,
@@ -313,14 +300,24 @@ def upload_file():
             "size": len(file_content),
         }
 
-        audio_uploads_collection.insert_one(metadata)
+        result = audio_uploads_collection.insert_one(metadata)
+        upload_id = str(result.inserted_id)
 
-        return jsonify({
-            "message": "uploaded",
-            "filename": filename,
-            "file_id": str(file_id),
-            "upload_path": upload_path
-        }), 200
+        print(
+            f"[INFO] Uploaded audio file to GridFS: {filename} (ID: {file_id}, Upload ID: {upload_id})"
+        )
+
+        return (
+            jsonify(
+                {
+                    "message": "uploaded",
+                    "filename": filename,
+                    "file_id": str(file_id),
+                    "upload_id": upload_id,  # Return upload_id so frontend can track it
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         return jsonify({"error": f"upload failed: {str(e)}"}), 500
