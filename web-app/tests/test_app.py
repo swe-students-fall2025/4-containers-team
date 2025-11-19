@@ -7,6 +7,8 @@ import io
 import tempfile
 from datetime import datetime
 from unittest.mock import patch, MagicMock
+
+from bson import ObjectId
 import pytest
 
 # Ensure project root is on sys.path
@@ -208,3 +210,102 @@ class TestUploads:
         resp = client.get("/api/uploads")
         assert resp.status_code == 500
         assert "Failed to get uploads" in resp.get_json()["error"]
+
+
+# ================================================================
+# /api/latest-analysis
+# ================================================================
+
+
+class TestLatestAnalysis:
+
+    @patch("app.audio_uploads_collection")
+    @patch("app.analyses_collection")
+    def test_latest_analysis_requires_upload_id(
+        self, _mock_analyses, _mock_audio, client
+    ):
+        resp = client.get("/api/latest-analysis")
+        assert resp.status_code == 200
+        assert resp.get_json() == {"has_upload": False}
+
+    @patch("app.audio_uploads_collection")
+    @patch("app.analyses_collection")
+    def test_latest_analysis_invalid_object_id(
+        self, _mock_analyses, _mock_audio, client
+    ):
+        resp = client.get("/api/latest-analysis?upload_id=notanid")
+        assert resp.status_code == 200
+        assert resp.get_json() == {"has_upload": False}
+
+    @patch("app.audio_uploads_collection")
+    @patch("app.analyses_collection")
+    def test_latest_analysis_upload_not_found(self, mock_analyses, mock_audio, client):
+        mock_audio.find_one.return_value = None
+        resp = client.get(f"/api/latest-analysis?upload_id={ObjectId()}")
+        assert resp.status_code == 200
+        assert resp.get_json() == {"has_upload": False}
+        mock_analyses.find_one.assert_not_called()
+
+    @patch("app.audio_uploads_collection")
+    @patch("app.analyses_collection")
+    def test_latest_analysis_processing(self, mock_analyses, mock_audio, client):
+        upload_id = ObjectId()
+        upload_doc = {
+            "_id": upload_id,
+            "filename": "audio.wav",
+            "upload_date": datetime(2023, 1, 1, 0, 0, 0),
+        }
+        mock_audio.find_one.return_value = upload_doc
+        mock_analyses.find_one.return_value = None
+
+        resp = client.get(f"/api/latest-analysis?upload_id={upload_id}")
+        data = resp.get_json()
+
+        assert resp.status_code == 200
+        assert data["status"] == "processing"
+        assert data["filename"] == "audio.wav"
+        assert data["upload_id"] == str(upload_id)
+        assert data["upload_date"] == upload_doc["upload_date"].isoformat()
+
+    @patch("app.audio_uploads_collection")
+    @patch("app.analyses_collection")
+    def test_latest_analysis_completed(self, mock_analyses, mock_audio, client):
+        upload_id = ObjectId()
+        upload_doc = {"_id": upload_id, "filename": "audio.wav"}
+        analysis_date = datetime(2023, 1, 2, 0, 0, 0)
+        analysis_doc = {
+            "_id": ObjectId(),
+            "audio_path": "audio.wav",
+            "language": "es",
+            "transcript": "hola",
+            "analysis_date": analysis_date,
+        }
+
+        mock_audio.find_one.return_value = upload_doc
+        mock_analyses.find_one.return_value = analysis_doc
+
+        resp = client.get(f"/api/latest-analysis?upload_id={upload_id}")
+        data = resp.get_json()
+
+        assert resp.status_code == 200
+        assert data["status"] == "completed"
+        assert data["analysis"]["language"] == "es"
+        assert data["analysis"]["transcript"] == "hola"
+        assert data["analysis"]["analysis_date"] == analysis_date.isoformat()
+
+    @patch("app.audio_uploads_collection", None)
+    @patch("app.analyses_collection", None)
+    def test_latest_analysis_db_unavailable(self, client):
+        resp = client.get(f"/api/latest-analysis?upload_id={ObjectId()}")
+        assert resp.status_code == 503
+        assert resp.get_json()["error"] == "database connection not available"
+
+    @patch("app.audio_uploads_collection")
+    @patch("app.analyses_collection")
+    def test_latest_analysis_exception(self, mock_analyses, mock_audio, client):
+        upload_id = ObjectId()
+        mock_audio.find_one.return_value = {"_id": upload_id, "filename": "audio.wav"}
+        mock_analyses.find_one.side_effect = RuntimeError("boom")
+        resp = client.get(f"/api/latest-analysis?upload_id={ObjectId()}")
+        assert resp.status_code == 500
+        assert "Failed to get latest analysis" in resp.get_json()["error"]

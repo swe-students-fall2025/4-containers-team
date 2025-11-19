@@ -77,7 +77,7 @@ def process_one_file():
 
 def main():
     """Main loop - continuously process audio files."""
-    interval = int(os.environ.get("COLLECTION_INTERVAL", "10"))
+    interval = int(os.environ.get("COLLECTION_INTERVAL", "5"))
 
     while True:
         try:
