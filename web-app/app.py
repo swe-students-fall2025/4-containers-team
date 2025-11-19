@@ -53,70 +53,70 @@ def get_stats():
         return jsonify({"error": f"Failed to get stats: {str(e)}"}), 500
 
 
-# @app.route("/api/analyses", methods=["GET"])
-# def get_analyses():
-#     """Get recent analyses from the database"""
-#     if analyses_collection is None:
-#         return jsonify({"error": "database connection not available"}), 503
+@app.route("/api/analyses", methods=["GET"])
+def get_analyses():
+    """Get recent analyses from the database"""
+    if analyses_collection is None:
+        return jsonify({"error": "database connection not available"}), 503
 
-#     try:
-#         # Get recent analyses, sorted by analysis_date descending
-#         limit = int(request.args.get("limit", 10))
-#         analyses = list(
-#             analyses_collection.find({}).sort("analysis_date", -1).limit(limit)
-#         )
+    try:
+        # Get recent analyses, sorted by analysis_date descending
+        limit = int(request.args.get("limit", 10))
+        analyses = list(
+            analyses_collection.find({}).sort("analysis_date", -1).limit(limit)
+        )
 
-#         # Convert ObjectId and datetime to strings for JSON
-#         for analysis in analyses:
-#             analysis["_id"] = str(analysis["_id"])
-#             if "file_id" in analysis:
-#                 analysis["file_id"] = str(analysis["file_id"])
-#             if "analysis_date" in analysis:
-#                 if "analysis_date" in analysis and analysis["analysis_date"]:
-#                     analysis["analysis_date"] = analysis["analysis_date"].isoformat()
-#                 else:
-#                     analysis["analysis_date"] = None
+        # Convert ObjectId and datetime to strings for JSON
+        for analysis in analyses:
+            analysis["_id"] = str(analysis["_id"])
+            if "file_id" in analysis:
+                analysis["file_id"] = str(analysis["file_id"])
+            if "analysis_date" in analysis:
+                if "analysis_date" in analysis and analysis["analysis_date"]:
+                    analysis["analysis_date"] = analysis["analysis_date"].isoformat()
+                else:
+                    analysis["analysis_date"] = None
 
-#         return jsonify({"analyses": analyses, "total": len(analyses)})
-#     except Exception as e:
-#         import traceback
+        return jsonify({"analyses": analyses, "total": len(analyses)})
+    except Exception as e:
+        import traceback
 
-#         print(traceback.format_exc())
-#         return jsonify({"error": f"Failed to get analyses: {str(e)}"}), 500
+        print(traceback.format_exc())
+        return jsonify({"error": f"Failed to get analyses: {str(e)}"}), 500
 
 
-# @app.route("/api/ml-result", methods=["POST"])
-# def receive_ml_result():
-#     """Receive ML result from ML client (for display/cache only, not database storage)."""
-#     try:
-#         data = request.get_json(silent=True)
+@app.route("/api/ml-result", methods=["POST"])
+def receive_ml_result():
+    """Receive ML result from ML client (for display/cache only, not database storage)."""
+    try:
+        data = request.get_json(silent=True)
 
-#         if not data:
-#             return jsonify({"error": "No data provided"}), 400
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
 
-#         # Add to cache for immediate display (ML client already saved to DB)
-#         result = {
-#             "language": data.get("language", "unknown"),
-#             "transcript": data.get("transcript", ""),
-#             "timestamp": datetime.now().isoformat(),
-#             "audio_path": data.get("audio_path", ""),
-#         }
+        # Add to cache for immediate display (ML client already saved to DB)
+        result = {
+            "language": data.get("language", "unknown"),
+            "transcript": data.get("transcript", ""),
+            "timestamp": datetime.now().isoformat(),
+            "audio_path": data.get("audio_path", ""),
+        }
 
-#         # Add to cache (most recent first)
-#         ml_results_cache.insert(0, result)
+        # Add to cache (most recent first)
+        ml_results_cache.insert(0, result)
 
-#         # Keep only recent results
-#         if len(ml_results_cache) > MAX_CACHE_SIZE:
-#             ml_results_cache.pop()
+        # Keep only recent results
+        if len(ml_results_cache) > MAX_CACHE_SIZE:
+            ml_results_cache.pop()
 
-#         print(f"[INFO] Received ML result (cached): language={result['language']}")
-#         return jsonify({"message": "Result received and cached", "result": result}), 200
+        print(f"[INFO] Received ML result (cached): language={result['language']}")
+        return jsonify({"message": "Result received and cached", "result": result}), 200
 
-#     except Exception as e:
-#         import traceback
+    except Exception as e:
+        import traceback
 
-#         print(traceback.format_exc())
-#         return jsonify({"error": f"Failed to receive result: {str(e)}"}), 500
+        print(traceback.format_exc())
+        return jsonify({"error": f"Failed to receive result: {str(e)}"}), 500
 
 
 @app.route("/api/ml-results", methods=["GET"])
@@ -190,78 +190,78 @@ def get_uploads():
         return jsonify({"error": f"Failed to get uploads: {str(e)}"}), 500
 
 
-# @app.route("/api/latest-analysis", methods=["GET"])
-# def get_latest_analysis():
-#     """
-#     Get analysis for a specific upload (identified by upload_id).
-#     """
-#     if audio_uploads_collection is None or analyses_collection is None:
-#         return jsonify({"error": "database connection not available"}), 503
+@app.route("/api/latest-analysis", methods=["GET"])
+def get_latest_analysis():
+    """
+    Get analysis for a specific upload (identified by upload_id).
+    """
+    if audio_uploads_collection is None or analyses_collection is None:
+        return jsonify({"error": "database connection not available"}), 503
 
-#     try:
-#         # Get upload_id from query parameter
-#         upload_id = request.args.get("upload_id")
+    try:
+        # Get upload_id from query parameter
+        upload_id = request.args.get("upload_id")
 
-#         if not upload_id:
-#             # No upload_id provided - user hasn't uploaded anything
-#             return jsonify({"has_upload": False})
+        if not upload_id:
+            # No upload_id provided - user hasn't uploaded anything
+            return jsonify({"has_upload": False})
 
-#         # Find the specific upload by ID
-#         try:
-#             upload = audio_uploads_collection.find_one({"_id": ObjectId(upload_id)})
-#         except Exception:
-#             # Invalid ObjectId format
-#             return jsonify({"has_upload": False})
+        # Find the specific upload by ID
+        try:
+            upload = audio_uploads_collection.find_one({"_id": ObjectId(upload_id)})
+        except Exception:
+            # Invalid ObjectId format
+            return jsonify({"has_upload": False})
 
-#         if upload is None:
-#             # Upload not found
-#             return jsonify({"has_upload": False})
+        if upload is None:
+            # Upload not found
+            return jsonify({"has_upload": False})
 
-#         filename = upload.get("filename", "")
+        filename = upload.get("filename", "")
 
-#         # Look for corresponding analysis by matching filename
-#         analysis = analyses_collection.find_one({"audio_path": filename})
+        # Look for corresponding analysis by matching filename
+        analysis = analyses_collection.find_one({"audio_path": filename})
 
-#         if analysis is None:
-#             # Upload exists but analysis not ready yet
-#             return jsonify(
-#                 {
-#                     "has_upload": True,
-#                     "status": "processing",
-#                     "filename": filename,
-#                     "upload_id": upload_id,
-#                     "upload_date": (
-#                         upload.get("upload_date").isoformat()
-#                         if upload.get("upload_date")
-#                         else None
-#                     ),
-#                 }
-#             )
+        if analysis is None:
+            # Upload exists but analysis not ready yet
+            return jsonify(
+                {
+                    "has_upload": True,
+                    "status": "processing",
+                    "filename": filename,
+                    "upload_id": upload_id,
+                    "upload_date": (
+                        upload.get("upload_date").isoformat()
+                        if upload.get("upload_date")
+                        else None
+                    ),
+                }
+            )
 
-#         # Analysis exists - return it
-#         analysis["_id"] = str(analysis["_id"])
-#         if "analysis_date" in analysis and analysis["analysis_date"]:
-#             analysis["analysis_date"] = analysis["analysis_date"].isoformat()
+        # Analysis exists - return it
+        analysis["_id"] = str(analysis["_id"])
+        if "analysis_date" in analysis and analysis["analysis_date"]:
+            analysis["analysis_date"] = analysis["analysis_date"].isoformat()
 
-#         return jsonify(
-#             {
-#                 "has_upload": True,
-#                 "status": "completed",
-#                 "filename": filename,
-#                 "upload_id": upload_id,
-#                 "analysis": {
-#                     "language": analysis.get("language", "unknown"),
-#                     "transcript": analysis.get("transcript", ""),
-#                     "analysis_date": analysis.get("analysis_date"),
-#                 },
-#             }
-#         )
+        return jsonify(
+            {
+                "has_upload": True,
+                "status": "completed",
+                "filename": filename,
+                "upload_id": upload_id,
+                "analysis": {
+                    "language": analysis.get("language", "unknown"),
+                    "transcript": analysis.get("transcript", ""),
+                    "analysis_date": analysis.get("analysis_date"),
+                },
+            }
+        )
 
-#     except Exception as e:
-#         import traceback
+    except Exception as e:
+        import traceback
 
-#         print(traceback.format_exc())
-#         return jsonify({"error": f"Failed to get latest analysis: {str(e)}"}), 500
+        print(traceback.format_exc())
+        return jsonify({"error": f"Failed to get latest analysis: {str(e)}"}), 500
 
 
 @app.route("/upload", methods=["POST"])
