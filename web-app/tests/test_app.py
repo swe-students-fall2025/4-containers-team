@@ -1,4 +1,4 @@
-# pylint: disable=R0903
+# pylint: disable=R0903, disable=unused-argument
 """Unit tests for app API routes."""
 
 import os
