@@ -197,7 +197,7 @@ def test_main_sleeps_after_success(monkeypatch):
 
     monkeypatch.setattr(main, "process_one_file", fake_process)
     monkeypatch.setattr(main.time, "sleep", record_sleep)
-    monkeypatch.setattr(main.os, "environ", {"COLLECTION_INTERVAL": "60"})
+    monkeypatch.setattr(main.os, "environ", {"COLLECTION_INTERVAL": "5"})
 
     main.main()
 
