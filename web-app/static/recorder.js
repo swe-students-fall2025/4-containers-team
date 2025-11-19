@@ -32,7 +32,6 @@ document.getElementById("recordBtn").onclick = async () => {
             const data = await response.json();
             
             if (response.ok) {
-                status.textContent = "recording uploaded:)";
                 // Dispatch event to notify dashboard to refresh
                 document.dispatchEvent(new CustomEvent('uploadComplete'));
             } else {
@@ -60,11 +59,11 @@ document.getElementById("recordBtn").onclick = async () => {
     }, 1000);
 
     // stop after 10 seconds
-    setTimeout(() => {
-        if (mediaRecorder.state !== 'inactive') {
-            mediaRecorder.requestData(); // Request any remaining data
-            mediaRecorder.stop();
-        }
-        status.textContent = "processing...";
-    }, 10000);
+    // setTimeout(() => {
+    //     if (mediaRecorder.state !== 'inactive') {
+    //         mediaRecorder.requestData(); // Request any remaining data
+    //         mediaRecorder.stop();
+    //     }
+    //     status.textContent = "processing...";
+    // }, 10000);
 };

@@ -129,3 +129,21 @@ def save_result(
 # Retrieves all cached results from in-memory store
 def get_cached_results() -> list[dict[str, Any]]:
     return list(_in_memory_store)
+
+def get_all_results() -> list[dict[str, Any]]:
+    """Fetch all analysis results from MongoDB, or from in-memory fallback."""
+    _init_connection()
+
+    # If MongoDB is available
+    if _db_available and _collection is not None:
+        try:
+            # convert cursor → list → make ObjectId serializable
+            results = list(_collection.find({}))
+            for doc in results:
+                doc["_id"] = str(doc["_id"])
+            return results
+        except PyMongoError as exc:
+            print(f"[WARNING] Failed to read analyses from MongoDB: {exc}")
+
+    # Fallback
+    return list(_in_memory_store)

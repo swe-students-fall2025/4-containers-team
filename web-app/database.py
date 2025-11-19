@@ -38,3 +38,31 @@ except Exception as e:
     error_msg = f"Failed to connect to MongoDB at {mongo_uri}: {e}"
     print(f"ERROR: {error_msg}")
     raise ConnectionFailure(error_msg)
+
+
+def save_result(language, transcript, audio_path):
+    """Save ML analysis result into the analyses collection."""
+    from datetime import datetime
+
+    doc = {
+        "language": language,
+        "transcript": transcript,
+        "audio_path": audio_path,
+        "analysis_date": datetime.utcnow(),
+    }
+
+    return analyses_collection.insert_one(doc)
+
+
+def get_all_results(limit=10):
+    """Return recent ML results sorted by date."""
+    cursor = analyses_collection.find().sort("analysis_date", -1).limit(limit)
+
+    results = []
+    for item in cursor:
+        item["_id"] = str(item["_id"])
+        if "analysis_date" in item:
+            item["analysis_date"] = item["analysis_date"].isoformat()
+        results.append(item)
+
+    return results
