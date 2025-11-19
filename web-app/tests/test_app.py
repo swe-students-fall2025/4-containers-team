@@ -1,3 +1,4 @@
+# pylint: disable=R0903,too-few-public-methods,wrong-import-position,missing-class-docstring,missing-function-docstring,import-outside-toplevel,import-error
 """Unit tests for app API routes."""
 
 import os
@@ -10,18 +11,14 @@ import pytest
 
 # Ensure project root is on sys.path
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
+sys.path.insert(0, ROOT)
 
-# pylint: disable=wrong-import-position,import-error
 try:
-    from app import app
+    from app import app  # noqa: E402
 except ImportError:
     ALT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../app"))
-    if ALT_ROOT not in sys.path:
-        sys.path.insert(0, ALT_ROOT)
-    from app import app
-# pylint: enable=wrong-import-position,import-error
+    sys.path.insert(0, ALT_ROOT)
+    from app import app  # noqa: E402
 
 
 # ================================================================
@@ -44,10 +41,7 @@ def client_fixture():
 
 
 class TestHomeRoute:
-    """Tests for home route."""
-
     def test_home_ok(self, client):
-        """Test home route returns 200."""
         resp = client.get("/")
         assert resp.status_code == 200
 
@@ -58,12 +52,10 @@ class TestHomeRoute:
 
 
 class TestUploadRoute:
-    """Tests for upload route."""
 
     @patch("app.audio_uploads_collection")
     @patch("app.fs")
     def test_upload_no_file(self, _mock_fs, _mock_coll, client):
-        """Test upload without file returns 400."""
         resp = client.post("/upload")
         assert resp.status_code == 400
         assert resp.get_json()["error"] == "no audio file"
@@ -71,7 +63,6 @@ class TestUploadRoute:
     @patch("app.audio_uploads_collection")
     @patch("app.fs")
     def test_upload_empty_filename(self, _mock_fs, _mock_coll, client):
-        """Test upload with empty filename returns 400."""
         resp = client.post("/upload", data={"audio": (io.BytesIO(b"abc"), "")})
         assert resp.status_code == 400
         assert resp.get_json()["error"] == "no file selected"
@@ -79,7 +70,6 @@ class TestUploadRoute:
     @patch("app.audio_uploads_collection", None)
     @patch("app.fs", None)
     def test_upload_no_db(self, client):
-        """Test upload without database returns 503."""
         resp = client.post("/upload", data={"audio": (io.BytesIO(b"abc"), "x.wav")})
         assert resp.status_code == 503
         assert resp.get_json()["error"] == "database connection not available"
@@ -87,7 +77,6 @@ class TestUploadRoute:
     @patch("app.audio_uploads_collection")
     @patch("app.fs")
     def test_upload_success(self, mock_fs, mock_coll, client):
-        """Test successful upload returns 200."""
         mock_fs.put.return_value = "fake_file_id"
         mock_coll.insert_one.return_value = MagicMock(inserted_id="fake_upload_id")
 
@@ -111,11 +100,9 @@ class TestUploadRoute:
 
 
 class TestStatsRoute:
-    """Tests for stats route."""
 
     @patch("app.audio_uploads_collection")
     def test_stats_ok(self, mock_coll, client):
-        """Test stats route returns correct count."""
         mock_coll.count_documents.return_value = 7
         resp = client.get("/api/stats")
         assert resp.status_code == 200
@@ -123,14 +110,12 @@ class TestStatsRoute:
 
     @patch("app.audio_uploads_collection", None)
     def test_stats_no_db(self, client):
-        """Test stats without database returns 503."""
         resp = client.get("/api/stats")
         assert resp.status_code == 503
         assert resp.get_json()["error"] == "database connection not available"
 
     @patch("app.audio_uploads_collection")
     def test_stats_exception(self, mock_coll, client):
-        """Test stats handles exceptions gracefully."""
         mock_coll.count_documents.side_effect = RuntimeError("boom")
         resp = client.get("/api/stats")
         assert resp.status_code == 500
@@ -143,11 +128,9 @@ class TestStatsRoute:
 
 
 class TestMLResults:
-    """Tests for ML results route."""
 
     @patch("app.get_all_results")
     def test_ml_results_ok(self, mock_get, client):
-        """Test ML results route returns limited results."""
         mock_get.return_value = [{"a": 1}, {"b": 2}]
         resp = client.get("/api/ml-results?limit=1")
         assert resp.status_code == 200
@@ -155,7 +138,6 @@ class TestMLResults:
 
     @patch("app.get_all_results", side_effect=RuntimeError("boom"))
     def test_ml_results_exception(self, _mock, client):
-        """Test ML results handles exceptions gracefully."""
         resp = client.get("/api/ml-results")
         assert resp.status_code == 500
 
@@ -166,11 +148,9 @@ class TestMLResults:
 
 
 class TestLanguages:
-    """Tests for languages route."""
 
     def test_languages_ok(self, client):
-        """Test languages route returns correct counts."""
-        # pylint: disable=import-outside-toplevel
+        # import inside test so patching doesn't break import-order
         from app import ml_results_cache
 
         ml_results_cache.clear()
@@ -190,7 +170,6 @@ class TestLanguages:
         assert data["languages"][0]["count"] == 2
 
     def test_languages_exception(self, client):
-        """Test languages handles exceptions gracefully."""
         with patch("app.ml_results_cache", None):
             resp = client.get("/api/languages")
             assert resp.status_code == 500
@@ -202,11 +181,9 @@ class TestLanguages:
 
 
 class TestUploads:
-    """Tests for uploads route."""
 
     @patch("app.audio_uploads_collection")
     def test_uploads_ok(self, mock_coll, client):
-        """Test uploads route returns correct data."""
         now = datetime.utcnow()
         mock_coll.find.return_value.sort.return_value.limit.return_value = [
             {"_id": 1, "file_id": 2, "upload_date": now}
@@ -221,14 +198,12 @@ class TestUploads:
 
     @patch("app.audio_uploads_collection", None)
     def test_uploads_no_db(self, client):
-        """Test uploads without database returns 503."""
         resp = client.get("/api/uploads")
         assert resp.status_code == 503
         assert resp.get_json()["error"] == "database connection not available"
 
     @patch("app.audio_uploads_collection")
     def test_uploads_exception(self, mock_coll, client):
-        """Test uploads handles exceptions gracefully."""
         mock_coll.find.side_effect = RuntimeError("fail")
         resp = client.get("/api/uploads")
         assert resp.status_code == 500
