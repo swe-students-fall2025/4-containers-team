@@ -1,4 +1,4 @@
-# pylint: disable=R0903,too-few-public-methods,wrong-import-position,missing-class-docstring,missing-function-docstring,import-outside-toplevel
+# pylint: disable=R0903,too-few-public-methods,wrong-import-position,missing-class-docstring,missing-function-docstring,import-outside-toplevel,import-error
 """Unit tests for app API routes."""
 
 import os
@@ -24,6 +24,7 @@ except ImportError:
 # ================================================================
 # FIXTURES
 # ================================================================
+
 
 @pytest.fixture(name="client")
 def client_fixture():
