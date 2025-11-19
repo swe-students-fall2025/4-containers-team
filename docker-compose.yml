@@ -27,7 +27,7 @@ services:
         environment:
             - MONGO_URI=mongodb+srv://bcl9779_db_user:1234@proj4.72ayexj.mongodb.net/proj4?retryWrites=true&w=majority
             - MONGODB_DATABASE=proj4
-            - COLLECTION_INTERVAL=60
+            - COLLECTION_INTERVAL=10
         volumes:
             - uploads_data:/uploads
         networks:
