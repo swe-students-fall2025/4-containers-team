@@ -2,6 +2,9 @@ let pollInterval = null;
 
 async function loadLatestAnalysis() {
     try {
+        // Load updated counts
+        loadTotalUploads();
+
         // Get the user's upload_id from localStorage
         const uploadId = localStorage.getItem("userUploadId");
 
@@ -77,10 +80,11 @@ function stopPolling() {
     }
 }
 
-// Load on page load - will show N/A if no upload_id in localStorage
-document.addEventListener("DOMContentLoaded", () => {
-    loadLatestAnalysis();
-});
+// // Load on page load - will show N/A if no upload_id in localStorage
+// document.addEventListener("DOMContentLoaded", () => {
+//     loadLatestAnalysis();
+//     loadTotalUploads();
+// });
 
 // When upload completes, start polling for results
 document.addEventListener("uploadComplete", (event) => {
@@ -93,4 +97,21 @@ document.addEventListener("uploadComplete", (event) => {
 // Clean up polling when page unloads
 window.addEventListener("beforeunload", () => {
     stopPolling();
+});
+
+async function loadTotalUploads() {
+    try {
+        const res = await fetch("/api/stats");
+        const data = await res.json();
+        document.getElementById("total-uploads").textContent =
+            data.total_uploads ?? 0;
+    } catch (err) {
+        console.error("Failed to load total uploads:", err);
+    }
+}
+
+// Load on page load - will show N/A if no upload_id in localStorage
+document.addEventListener("DOMContentLoaded", () => {
+    loadLatestAnalysis();
+    loadTotalUploads();
 });
