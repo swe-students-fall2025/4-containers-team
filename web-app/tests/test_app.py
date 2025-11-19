@@ -1,6 +1,5 @@
 # pylint: disable=R0903,too-few-public-methods,wrong-import-position
 """Unit tests for app API routes."""
-from app import app, ml_results_cache, MAX_CACHE_SIZE
 import os
 import io
 import sys
@@ -14,6 +13,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+from app import app, ml_results_cache, MAX_CACHE_SIZE
 
 # =====================================================================
 # FIXTURES
