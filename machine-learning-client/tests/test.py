@@ -1,185 +1,254 @@
 """Tests for the machine-learning client."""
 
 import os
+
+import pytest
+import requests
+
 import main
 import language_learner
 import database
 
 
-# ---------------------------------------------------------------------------
-# Tests for find_most_recent_audio
-# ---------------------------------------------------------------------------
+class DummyResponse:  # pylint: disable=too-few-public-methods
+    """Simple response stub to fake requests.post."""
+
+    def __init__(self, status_code: int = 200) -> None:
+        self.status_code = status_code
 
 
-def test_find_most_recent_audio_nonexistent_dir_returns_none(tmp_path):
-    """If the directory does not exist, return None."""
-    bogus_dir = tmp_path / "does_not_exist"
+def test_process_one_file_returns_false_when_no_audio(monkeypatch):
+    """process_one_file should return False when nothing is available."""
 
-    result = main.find_most_recent_audio(str(bogus_dir))
+    monkeypatch.setattr(main, "get_most_recent_unprocessed_audio_file", lambda: None)
 
-    assert result is None
-
-
-def test_find_most_recent_audio_only_non_audio_files_returns_none(tmp_path, capsys):
-    """
-    Directory exists but has no audio files (only non-audio) -> returns None
-    and prints the INFO message.
-    """
-    upload_dir = tmp_path / "uploads"
-    upload_dir.mkdir()
-
-    # non-audio file should be ignored
-    (upload_dir / "notes.txt").write_text("not audio")
-
-    result = main.find_most_recent_audio(str(upload_dir))
-
-    captured = capsys.readouterr()
-    assert f"No audio files found in {upload_dir}" in captured.out
-    assert result is None
+    assert main.process_one_file() is False
 
 
-def test_find_most_recent_audio_empty_dir_returns_none(tmp_path):
-    """If the upload directory is empty, find_most_recent_audio returns None."""
-    upload_dir = tmp_path / "uploads"
-    upload_dir.mkdir()
+def test_process_one_file_processes_audio(monkeypatch):
+    """When audio exists, process_one_file should save and send results."""
 
-    result = main.find_most_recent_audio(str(upload_dir))
-
-    assert result is None
-
-
-def test_find_most_recent_audio_picks_newest_audio_file(tmp_path):
-    """find_most_recent_audio returns path of most recently modified audio file."""
-    upload_dir = tmp_path / "uploads"
-    upload_dir.mkdir()
-
-    old = upload_dir / "old.wav"
-    new = upload_dir / "new.mp3"
-
-    old.write_bytes(b"old")
-    new.write_bytes(b"new")
-
-    # Make sure old has an older mtime than new
-    os.utime(old, (1, 1))
-
-    result = main.find_most_recent_audio(str(upload_dir))
-
-    assert result is not None
-    assert result.endswith("new.mp3")
-
-
-# ---------------------------------------------------------------------------
-# Tests for language_learner.detect_language_from_audio
-# ---------------------------------------------------------------------------
-
-
-def test_detect_language_from_audio_calls_model_and_save_result(tmp_path):
-    """detect_language_from_audio should use the model and call save_result."""
-    audio_path = tmp_path / "sample.wav"
-    audio_path.write_bytes(b"fake audio bytes")
-
-    class DummyModel:  # pylint: disable=too-few-public-methods
-        """Fake Whisper model for testing."""
-
-        def transcribe(self, path):
-            """dummy transcribe method that transcribes audio"""
-            assert str(path) == str(audio_path)
-            return {
-                "text": "bonjour",
-                "language": "fr",
-                "avg_logprob": -0.2,
-            }
-
-    # Replace the real Whisper model with our dummy.
-    language_learner.model = DummyModel()
-
-    saved: dict[str, object] = {}
-
-    def fake_save_result(**kwargs):
-        """Fake database save; just records the kwargs."""
-        saved.update(kwargs)
-
-    language_learner.save_result = fake_save_result
-
-    result = language_learner.detect_language_from_audio(str(audio_path))
-
-    assert result["language"] == "fr"
-    assert result["transcript"] == "bonjour"
-
-    # Ensure we attempted to save the right info.
-    assert saved["audio_path"] == str(audio_path)
-    assert saved["lang"] == "fr"
-    assert saved["transcript"] == "bonjour"
-
-
-# ---------------------------------------------------------------------------
-# Tests for main.main orchestrator
-# ---------------------------------------------------------------------------
-
-
-def test_main_returns_1_when_no_audio_files(tmp_path, monkeypatch):
-    """main.main returns 1 when no audio files are present in the upload dir."""
-    upload_dir = tmp_path / "uploads"
-    upload_dir.mkdir()
-
-    # Use our empty directory as the upload dir.
-    monkeypatch.setattr(main, "upload_dir", str(upload_dir))
-
-    exit_code = main.main()
-
-    assert exit_code == 1
-
-
-def test_main_happy_path_with_audio(monkeypatch, tmp_path):
-    """main.main returns 0 and calls detect_language_from_audio + save_result."""
-    upload_dir = tmp_path / "uploads"
-    upload_dir.mkdir()
-
-    audio_file = upload_dir / "recording.webm"
-    audio_file.write_bytes(b"fake audio")
-
-    # Ensure this is seen as the newest audio file.
-    os.utime(audio_file, (10, 10))
-
-    monkeypatch.setattr(main, "upload_dir", str(upload_dir))
-
-    def fake_detect_language_from_audio(path):
-        assert str(path) == str(audio_file)
-        return {
-            "language": "en",
-            "transcript": "hello world",
-        }
-
+    fake_audio = b"fake audio bytes"
     monkeypatch.setattr(
-        main, "detect_language_from_audio", fake_detect_language_from_audio
+        main,
+        "get_most_recent_unprocessed_audio_file",
+        lambda: ("sample.wav", fake_audio),
     )
 
-    saved: dict[str, object] = {}
+    captured_detection: dict[str, object] = {}
+
+    def fake_detect(temp_path):
+        assert os.path.exists(temp_path)
+        with open(temp_path, "rb") as tmp:
+            assert tmp.read() == fake_audio
+        captured_detection["path"] = temp_path
+        return {"language": "en", "transcript": "hello"}
+
+    monkeypatch.setattr(main, "detect_language_from_audio", fake_detect)
+
+    saved_docs: dict[str, object] = {}
 
     def fake_save_result(**kwargs):
-        """Fake database save; just records kwargs from main.main."""
-        saved.update(kwargs)
+        saved_docs.update(kwargs)
 
     monkeypatch.setattr(main, "save_result", fake_save_result)
 
-    exit_code = main.main()
+    post_calls = {"count": 0}
 
-    assert exit_code == 0
-    assert saved["audio_path"] == str(audio_file)
-    # Note: your code uses 'lang' as the kwarg name.
-    assert saved["lang"] == "en"
-    assert saved["transcript"] == "hello world"
+    def fake_post(url, json, timeout):
+        assert "api/ml-result" in url
+        assert json["language"] == "en"
+        assert json["transcript"] == "hello"
+        assert timeout == 5
+        post_calls["count"] += 1
+        return DummyResponse(200)
+
+    monkeypatch.setattr(main.requests, "post", fake_post)
+
+    assert main.process_one_file() is True
+    assert post_calls["count"] == 1
+    assert saved_docs["audio_path"] == "sample.wav"
+    assert saved_docs["lang"] == "en"
+    assert saved_docs["transcript"] == "hello"
+    assert not os.path.exists(captured_detection["path"])
 
 
-# ---------------------------------------------------------------------------
-# Tests for database.save_result stub
-# ---------------------------------------------------------------------------
+def test_process_one_file_handles_request_exception(monkeypatch):
+    """A RequestException should be caught without stopping processing."""
+
+    fake_audio = b"bytes"
+    monkeypatch.setattr(
+        main,
+        "get_most_recent_unprocessed_audio_file",
+        lambda: ("sample.wav", fake_audio),
+    )
+    monkeypatch.setattr(
+        main,
+        "detect_language_from_audio",
+        lambda *_: {"language": "en", "transcript": "hello"},
+    )
+
+    saved_docs: dict[str, object] = {}
+    monkeypatch.setattr(main, "save_result", lambda **kwargs: saved_docs.update(kwargs))
+
+    def fake_post(*_, **__):
+        raise requests.RequestException("network down")
+
+    monkeypatch.setattr(main.requests, "post", fake_post)
+
+    # Force os.unlink to raise so we cover that branch as well.
+    def raise_os_error(*_args, **_kwargs):
+        raise OSError("cleanup failure")
+
+    monkeypatch.setattr(os, "unlink", raise_os_error)
+    assert main.process_one_file() is True
+    assert saved_docs["audio_path"] == "sample.wav"
 
 
-def test_database_save_result_is_callable():
-    """database.save_result should accept arguments and not raise."""
-    database.save_result(
+def test_main_handles_keyboard_interrupt(monkeypatch):
+    """The main loop should exit cleanly when interrupted."""
+
+    call_tracker = {"count": 0}
+
+    def fake_process():
+        call_tracker["count"] += 1
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(main, "process_one_file", fake_process)
+    monkeypatch.setattr(main.time, "sleep", lambda *_: None)
+
+    main.main()
+    assert call_tracker["count"] == 1
+
+
+def test_detect_language_from_audio_with_model(monkeypatch, tmp_path):
+    """detect_language_from_audio should use the configured Whisper model."""
+
+    audio_path = tmp_path / "clip.wav"
+    audio_path.write_bytes(b"audio-bytes")
+
+    class DummyModel:  # pylint: disable=too-few-public-methods
+        """Simple Whisper stand-in for tests."""
+
+        def transcribe(self, filepath):
+            """Return a predictable transcription payload."""
+            assert str(filepath) == str(audio_path)
+            return {"text": "ciao", "language": "it"}
+
+    monkeypatch.setattr(language_learner, "model", DummyModel())
+
+    result = language_learner.detect_language_from_audio(str(audio_path))
+    assert result == {"language": "it", "transcript": "ciao"}
+
+
+def test_detect_language_from_audio_without_model(monkeypatch, tmp_path):
+    """When no model is loaded, detect_language_from_audio should raise."""
+
+    audio_path = tmp_path / "clip.wav"
+    audio_path.write_bytes(b"audio-bytes")
+    monkeypatch.setattr(language_learner, "model", None)
+
+    with pytest.raises(RuntimeError):
+        language_learner.detect_language_from_audio(str(audio_path))
+
+
+def test_database_save_result_returns_identifier():
+    """database.save_result should return an identifier even without Mongo."""
+
+    inserted_id = database.save_result(
         audio_path="some/path.wav",
         lang="en",
         transcript="hello world",
     )
+    assert inserted_id is not None
+
+
+# ---------------------------------------------------------------------------
+# Additional database coverage tests
+# ---------------------------------------------------------------------------
+
+
+def test_get_most_recent_unprocessed_audio_handles_missing_db(monkeypatch):
+    """If Mongo is unavailable, the helper should return None."""
+
+    monkeypatch.setattr(database, "_db_available", False)
+    monkeypatch.setattr(database, "_audio_uploads_collection", None)
+    monkeypatch.setattr(database, "_fs", None)
+    monkeypatch.setattr(database, "_collection", None)
+
+    assert database.get_most_recent_unprocessed_audio_file() is None
+
+
+def test_main_sleeps_after_success(monkeypatch):
+    """When work is processed, main should sleep for the short interval."""
+
+    state = {"calls": 0}
+
+    def fake_process():
+        state["calls"] += 1
+        if state["calls"] == 1:
+            return True
+        raise KeyboardInterrupt
+
+    sleeps: list[int] = []
+
+    def record_sleep(seconds):
+        sleeps.append(seconds)
+
+    monkeypatch.setattr(main, "process_one_file", fake_process)
+    monkeypatch.setattr(main.time, "sleep", record_sleep)
+    monkeypatch.setattr(main.os, "environ", {"COLLECTION_INTERVAL": "60"})
+
+    main.main()
+
+    assert 5 in sleeps  # processed branch
+
+
+def test_main_waits_when_no_files(monkeypatch):
+    """If no files exist, main should sleep for the configured interval."""
+
+    state = {"calls": 0}
+
+    def fake_process():
+        state["calls"] += 1
+        if state["calls"] == 1:
+            return False
+        raise KeyboardInterrupt
+
+    sleeps: list[int] = []
+
+    def record_sleep(seconds):
+        sleeps.append(seconds)
+
+    monkeypatch.setattr(main, "process_one_file", fake_process)
+    monkeypatch.setattr(main.time, "sleep", record_sleep)
+    monkeypatch.setattr(main.os, "environ", {"COLLECTION_INTERVAL": "10"})
+
+    main.main()
+
+    assert 10 in sleeps  # interval branch
+
+
+def test_main_handles_unexpected_exception(monkeypatch):
+    """Unexpected exceptions should be logged and trigger the retry sleep."""
+
+    state = {"calls": 0}
+
+    def fake_process():
+        state["calls"] += 1
+        if state["calls"] == 1:
+            raise ValueError("boom")
+        raise KeyboardInterrupt
+
+    sleeps: list[int] = []
+
+    def record_sleep(seconds):
+        sleeps.append(seconds)
+
+    monkeypatch.setattr(main, "process_one_file", fake_process)
+    monkeypatch.setattr(main.time, "sleep", record_sleep)
+    monkeypatch.setattr(main.os, "environ", {"COLLECTION_INTERVAL": "1"})
+
+    main.main()
+
+    assert 10 in sleeps  # error backoff

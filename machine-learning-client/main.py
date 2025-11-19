@@ -1,85 +1,105 @@
 """Machine Learning orchestrator."""
 
 import os
-import sys
-from datetime import datetime
+import tempfile
+import time
+import traceback
+
 import requests
+from requests import RequestException
 
 from language_learner import detect_language_from_audio
-from database import save_result
+from database import save_result, get_most_recent_unprocessed_audio_file
 
 
-upload_dir = "/uploads"
+def process_one_file():
+    """Process a single audio file. Returns True if a file was processed, False otherwise."""
+    print("[INFO] Looking for unprocessed audio in MongoDB GridFS")
+    audio_data = get_most_recent_unprocessed_audio_file()
 
+    if audio_data is None:
+        return False
 
-def find_most_recent_audio(upload_dir: str) -> str | None:
-    # Return the full path of the most recently modified audio file, or None.
-    if not os.path.isdir(upload_dir):
-        print(f"[ERROR] Upload directory does not exist: {upload_dir}")
-        return None
+    filename, file_content = audio_data
+    print(f"[INFO] Retrieved audio file: {filename}")
 
-    files = []
-    for name in os.listdir(upload_dir):
-        # only look at wav/webm files
-        if name.lower().endswith((".wav", ".webm", ".mp3", ".m4a", ".ogg")):
-            full_path = os.path.join(upload_dir, name)
-            if os.path.isfile(full_path):
-                files.append(full_path)
+    with tempfile.NamedTemporaryFile(
+        delete=False, suffix=os.path.splitext(filename)[1]
+    ) as tmp_file:
+        tmp_file.write(file_content)
+        tmp_path = tmp_file.name
 
-    if not files:
-        print(f"[INFO] No audio files found in {upload_dir}")
-        return None
-
-    # pick the newest by modification time
-    latest = max(files, key=os.path.getmtime)
-    return latest
-
-
-def main() -> int:
-    print(f"[INFO] Looking for latest audio in: {upload_dir}")
-    audio_path = find_most_recent_audio(upload_dir)
-
-    if audio_path is None:
-        return 1
-
-    print(f"[INFO] Using most recent audio file: {audio_path}")
-
-    result = detect_language_from_audio(audio_path)
-
-    language = result.get("language", "unknown")
-    transcript = result.get("transcript", "")
-
-    print("[RESULT]")
-    print(f"  language   : {language}")
-    print(f"  transcript : {transcript}")
-
-    # Send result to web-app (no database storage)
-    web_app_url = os.environ.get("WEB_APP_URL", "http://web-app:5000")
     try:
-        response = requests.post(
-            f"{web_app_url}/api/ml-result",
-            json={
-                "language": language,
-                "transcript": transcript,
-                "audio_path": audio_path,
-            },
-            timeout=5,
+        result = detect_language_from_audio(tmp_path)
+
+        language = result.get("language", "unknown")
+        transcript = result.get("transcript", "")
+
+        print("[RESULT]")
+        print(f"  language   : {language}")
+        print(f"  transcript : {transcript}")
+
+        # Send result to web-app (for display, not database storage)
+        web_app_url = os.environ.get("WEB_APP_URL", "http://web-app:5000")
+        try:
+            response = requests.post(
+                f"{web_app_url}/api/ml-result",
+                json={
+                    "language": language,
+                    "transcript": transcript,
+                    "audio_path": filename,
+                },
+                timeout=5,
+            )
+            if response.status_code == 200:
+                print("[INFO] Result sent to web-app successfully.")
+            else:
+                print(
+                    f"[WARNING] Failed to send result to web-app: {response.status_code}"
+                )
+        except RequestException as exc:
+            print(f"[WARNING] Could not send result to web-app: {exc}")
+
+        save_result(
+            audio_path=filename,
+            lang=language,
+            transcript=transcript,
         )
-        if response.status_code == 200:
-            print("[INFO] Result sent to web-app successfully.")
-        else:
-            print(f"[WARNING] Failed to send result to web-app: {response.status_code}")
-    except Exception as e:
-        print(f"[WARNING] Could not send result to web-app: {e}")
+        print("[INFO] Saved result to MongoDB.")
 
-    save_result(
-        audio_path=audio_path,
-        lang=language,
-        transcript=transcript,
-    )
-    print("[INFO] Saved result to MongoDB.")
+        return True
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
-    return 0
+
+def main():
+    """Main loop - continuously process audio files."""
+    interval = int(os.environ.get("COLLECTION_INTERVAL", "10"))
+
+    while True:
+        try:
+            processed = process_one_file()
+
+            if processed:
+                # File was processed, wait a bit before checking for next one
+                time.sleep(5)
+            else:
+                # No files to process, wait longer before checking again
+                print(
+                    f"[INFO] No unprocessed files found. Waiting {interval} seconds..."
+                )
+                time.sleep(interval)
+        except KeyboardInterrupt:
+            print("[INFO] Shutting down...")
+            break
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            print(f"[ERROR] Unexpected error: {exc}")
+            traceback.print_exc()
+            # Wait before retrying
+            time.sleep(10)
 
 
 if __name__ == "__main__":

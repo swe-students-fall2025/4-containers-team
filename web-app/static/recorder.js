@@ -8,7 +8,7 @@ document.getElementById("recordBtn").onclick = async () => {
     const mediaRecorder = new MediaRecorder(stream);
     let chunks = [];
 
-    mediaRecorder.ondataavailable = e => chunks.push(e.data);
+    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
 
     mediaRecorder.onstop = async () => {
         countdown.textContent = "done!";
@@ -19,24 +19,32 @@ document.getElementById("recordBtn").onclick = async () => {
             return;
         }
 
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob(chunks, { type: "audio/webm" });
         const formData = new FormData();
         formData.append("audio", blob, "recording.webm");
 
         try {
             const response = await fetch("/upload", {
                 method: "POST",
-                body: formData
+                body: formData,
             });
 
             const data = await response.json();
-            
+
             if (response.ok) {
-                status.textContent = "recording uploaded:)";
+                // Store the upload_id in localStorage so we can track this user's upload
+                if (data.upload_id) {
+                    localStorage.setItem("userUploadId", data.upload_id);
+                    console.log("Stored upload_id:", data.upload_id);
+                }
                 // Dispatch event to notify dashboard to refresh
-                document.dispatchEvent(new CustomEvent('uploadComplete'));
+                document.dispatchEvent(
+                    new CustomEvent("uploadComplete", {
+                        detail: { uploadId: data.upload_id },
+                    })
+                );
             } else {
-                status.textContent = `Upload failed: ${data.error || 'Unknown error'}`;
+                status.textContent = `Upload failed: ${data.error || "Unknown error"}`;
             }
         } catch (error) {
             status.textContent = `Upload failed: ${error.message}`;
@@ -61,9 +69,10 @@ document.getElementById("recordBtn").onclick = async () => {
 
     // stop after 10 seconds
     setTimeout(() => {
-        if (mediaRecorder.state !== 'inactive') {
+        if (mediaRecorder.state !== "inactive") {
             mediaRecorder.requestData(); // Request any remaining data
             mediaRecorder.stop();
+            stream.getTracks().forEach((track) => track.stop()); // Stop microphone access
         }
         status.textContent = "processing...";
     }, 10000);
