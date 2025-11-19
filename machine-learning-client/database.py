@@ -7,7 +7,7 @@ from __future__ import annotations
 # Additionally, we provide a backup if we can't use DB for unit testing.
 
 # Allows for date and time operations
-from datetime import datetime 
+from datetime import datetime
 import os
 from typing import Any
 
@@ -45,6 +45,7 @@ _db_available = False
 # Fallback store used in tests or when MongoDB is offline.
 _in_memory_store: list[dict[str, Any]] = []
 
+
 # Initializes the connection to MongoDB
 def _init_connection() -> None:
     """Lazily connect to MongoDB."""
@@ -64,24 +65,23 @@ def _init_connection() -> None:
             f"db '{DATABASE_NAME}', collection '{ANALYSES_COLLECTION}'"
         )
     except ConnectionFailure as exc:
-        print(
-            f"[WARNING] ML client could not connect to MongoDB ({MONGO_URI}): {exc}"
-        )
+        print(f"[WARNING] ML client could not connect to MongoDB ({MONGO_URI}): {exc}")
         _client = None
         _collection = None
         _db_available = False
 
+
 # Packages the document to store it into MongoDB
 def _build_document(
     *,
-    audio_path: str, # path to the audio file
-    language: str, # detected language
-    transcript: str | None, # transcribed text
+    audio_path: str,  # path to the audio file
+    language: str,  # detected language
+    transcript: str | None,  # transcribed text
     extra_fields: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the document stored in MongoDB."""
     document: dict[str, Any] = {
-        "audio_path": audio_path, 
+        "audio_path": audio_path,
         "language": language,
         "transcript": transcript,
         "analysis_date": datetime.utcnow(),
@@ -89,6 +89,7 @@ def _build_document(
     if extra_fields:
         document.update(extra_fields)
     return document
+
 
 # This is the primary function to save analysis results into DB
 # Accepts both lang and language kwargs for compatibility
@@ -100,8 +101,8 @@ def save_result(
     transcript: str | None = None,
     extra_fields: dict[str, Any] | None = None,
 ) -> Any:
-    #decides on the detected language or falls back to "unknown"
-    detected_language = language or lang or "unknown" 
+    # decides on the detected language or falls back to "unknown"
+    detected_language = language or lang or "unknown"
     document = _build_document(
         audio_path=audio_path,
         language=detected_language,
@@ -123,6 +124,7 @@ def save_result(
     document["_id"] = f"in-memory-{len(_in_memory_store) + 1}"
     _in_memory_store.append(document)
     return document["_id"]
+
 
 # Retrieves all cached results from in-memory store
 def get_cached_results() -> list[dict[str, Any]]:

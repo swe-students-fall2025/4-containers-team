@@ -3,16 +3,23 @@
 import os
 import sys
 from datetime import datetime
+from pathlib import Path
 import requests
 
 from language_learner import detect_language_from_audio
 from database import save_result
 
-#This is the directory where audio uploads are stored now.
-#Did this to match the web-app's /shared/uploads mount to the ML client.
-DEFAULT_UPLOAD_DIR = "/shared/uploads"
-UPLOAD_DIR = os.environ.get("UPLOAD_DIR", DEFAULT_UPLOAD_DIR)
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# Default to a writable folder inside the repo for local/testing runs.
+BASE_DIR = Path(__file__).resolve().parent
+DEFAULT_UPLOAD_DIR = BASE_DIR / "uploads"
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", str(DEFAULT_UPLOAD_DIR))
+try:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+except PermissionError:
+    print(
+        f"[WARNING] Cannot create upload directory at {UPLOAD_DIR}. "
+        "Continuing; ensure the path exists inside the container."
+    )
 
 
 def find_most_recent_audio(upload_dir: str) -> str | None:
