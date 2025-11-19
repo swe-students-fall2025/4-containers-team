@@ -85,38 +85,38 @@ def get_stats():
 #         return jsonify({"error": f"Failed to get analyses: {str(e)}"}), 500
 
 
-@app.route("/api/ml-result", methods=["POST"])
-def receive_ml_result():
-    """Receive ML result from ML client (for display/cache only, not database storage)."""
-    try:
-        data = request.get_json(silent=True)
+# @app.route("/api/ml-result", methods=["POST"])
+# def receive_ml_result():
+#     """Receive ML result from ML client (for display/cache only, not database storage)."""
+#     try:
+#         data = request.get_json(silent=True)
 
-        if not data:
-            return jsonify({"error": "No data provided"}), 400
+#         if not data:
+#             return jsonify({"error": "No data provided"}), 400
 
-        # Add to cache for immediate display (ML client already saved to DB)
-        result = {
-            "language": data.get("language", "unknown"),
-            "transcript": data.get("transcript", ""),
-            "timestamp": datetime.now().isoformat(),
-            "audio_path": data.get("audio_path", ""),
-        }
+#         # Add to cache for immediate display (ML client already saved to DB)
+#         result = {
+#             "language": data.get("language", "unknown"),
+#             "transcript": data.get("transcript", ""),
+#             "timestamp": datetime.now().isoformat(),
+#             "audio_path": data.get("audio_path", ""),
+#         }
 
-        # Add to cache (most recent first)
-        ml_results_cache.insert(0, result)
+#         # Add to cache (most recent first)
+#         ml_results_cache.insert(0, result)
 
-        # Keep only recent results
-        if len(ml_results_cache) > MAX_CACHE_SIZE:
-            ml_results_cache.pop()
+#         # Keep only recent results
+#         if len(ml_results_cache) > MAX_CACHE_SIZE:
+#             ml_results_cache.pop()
 
-        print(f"[INFO] Received ML result (cached): language={result['language']}")
-        return jsonify({"message": "Result received and cached", "result": result}), 200
+#         print(f"[INFO] Received ML result (cached): language={result['language']}")
+#         return jsonify({"message": "Result received and cached", "result": result}), 200
 
-    except Exception as e:
-        import traceback
+#     except Exception as e:
+#         import traceback
 
-        print(traceback.format_exc())
-        return jsonify({"error": f"Failed to receive result: {str(e)}"}), 500
+#         print(traceback.format_exc())
+#         return jsonify({"error": f"Failed to receive result: {str(e)}"}), 500
 
 
 @app.route("/api/ml-results", methods=["GET"])
@@ -127,7 +127,7 @@ def get_ml_results():
 
         results = get_all_results()[:limit]  # local slicing
 
-        return jsonify({"results": results, "total": len(results)})
+        return jsonify({"results": results, "total": len(results)}), 200
 
     except Exception as e:
         return jsonify({"error": f"Failed to fetch results: {str(e)}"}), 500
