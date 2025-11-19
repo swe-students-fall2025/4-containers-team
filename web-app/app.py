@@ -212,11 +212,6 @@ def upload_file():
         # Read file content
         file_content = file.read()
 
-        # Persist a copy to the shared uploads directory for the ML client.
-        local_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        with open(local_path, "wb") as local_file:
-            local_file.write(file_content)
-
         # Store file in GridFS
         file_id = fs.put(
             file_content,
@@ -229,7 +224,6 @@ def upload_file():
             "file_id": file_id,
             "filename": filename,
             "upload_date": datetime.now(),
-            "local_path": local_path,
             "content_type": file.content_type or "audio/wav",
             "size": len(file_content),
         }
