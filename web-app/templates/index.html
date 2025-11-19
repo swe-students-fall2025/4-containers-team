@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World Tour by Ear - ML Activity Dashboard</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Language Learn - ML Activity Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>World Tour by Ear</h1>
-            <h2>ML Client Activity Dashboard</h2>
-        </header>
+        <!-- HERO SECTION: full viewport, centered title -->
+        <section class="hero section" id="hero-section" aria-label="Hero">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <h1 class="hero-title">Language Detector</h1>
+                <p class="hero-subtitle">Bet we can guess the language you're speaking</p>
+            </div>
+            <a class="scroll-down" href="#start-section" aria-label="Scroll to start">↓</a>
+        </section>
 
-        <section class="stats-section">
+        <section class="stats-section" id="start-section">
             <h3>Activity Statistics</h3>
             <div class="stats-grid">
                 <div class="stat-card">
@@ -27,7 +32,7 @@
             </div>
         </section>
 
-        <section class="upload-section">
+        <section id="recorder-section" class="upload-section space-section">
             <h3>Record Audio</h3>
             <p>Record 10 seconds of yourself speaking - we bet we can guess your language!</p>
             <button id="recordBtn" class="record-btn">Start Recording</button>
@@ -51,6 +56,7 @@
         </section>
     </div>
 
+    <script src="/static/hero.js"></script>
     <script src="/static/recorder.js"></script>
     <script src="/static/dashboard.js"></script>
 </body>
