@@ -1,6 +1,5 @@
-"""MongoDB helper utilities for the machine learning client."""
+# database
 
-from __future__ import annotations
 
 # Overall: get the MongoDB connection from env variables,
 # build the document to store, and save the analysis result.
