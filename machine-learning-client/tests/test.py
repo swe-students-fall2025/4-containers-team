@@ -123,7 +123,7 @@ def test_main_returns_1_when_no_audio_files(tmp_path, monkeypatch):
     upload_dir.mkdir()
 
     # Use our empty directory as the upload dir.
-    monkeypatch.setattr(main, "upload_dir", str(upload_dir))
+    monkeypatch.setattr(main, "UPLOAD_DIR", str(upload_dir))
 
     exit_code = main.main()
 
@@ -141,7 +141,7 @@ def test_main_happy_path_with_audio(monkeypatch, tmp_path):
     # Ensure this is seen as the newest audio file.
     os.utime(audio_file, (10, 10))
 
-    monkeypatch.setattr(main, "upload_dir", str(upload_dir))
+    monkeypatch.setattr(main, "UPLOAD_DIR", str(upload_dir))
 
     def fake_detect_language_from_audio(path):
         assert str(path) == str(audio_file)
