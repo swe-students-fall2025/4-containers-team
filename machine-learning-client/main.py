@@ -1,11 +1,12 @@
 """Machine Learning orchestrator."""
 
 import os
-import sys
 import tempfile
 import time
-from datetime import datetime
+import traceback
+
 import requests
+from requests import RequestException
 
 from language_learner import detect_language_from_audio
 from database import save_result, get_most_recent_unprocessed_audio_file
@@ -56,8 +57,8 @@ def process_one_file():
                 print(
                     f"[WARNING] Failed to send result to web-app: {response.status_code}"
                 )
-        except Exception as e:
-            print(f"[WARNING] Could not send result to web-app: {e}")
+        except RequestException as exc:
+            print(f"[WARNING] Could not send result to web-app: {exc}")
 
         save_result(
             audio_path=filename,
@@ -70,14 +71,13 @@ def process_one_file():
     finally:
         try:
             os.unlink(tmp_path)
-        except Exception:
+        except OSError:
             pass
 
 
 def main():
     """Main loop - continuously process audio files."""
-    print("[INFO] ML Client starting - will run continuously")
-    interval = int(os.environ.get("COLLECTION_INTERVAL", "60"))
+    interval = 10
 
     while True:
         try:
@@ -95,10 +95,8 @@ def main():
         except KeyboardInterrupt:
             print("[INFO] Shutting down...")
             break
-        except Exception as e:
-            print(f"[ERROR] Unexpected error: {e}")
-            import traceback
-
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            print(f"[ERROR] Unexpected error: {exc}")
             traceback.print_exc()
             # Wait before retrying
             time.sleep(10)

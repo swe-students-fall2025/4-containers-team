@@ -9,7 +9,7 @@
 # Allows for date and time operations
 from datetime import datetime
 import os
-from typing import Any
+from typing import Any, Optional
 
 # MongoDB driver imports
 from pymongo import MongoClient
@@ -40,11 +40,11 @@ if not MONGO_URI:
 DATABASE_NAME = os.getenv("MONGODB_DATABASE", "proj4")
 ANALYSES_COLLECTION = os.getenv("MONGODB_ANALYSES_COLLECTION", "analyses")
 
-_client: MongoClient | None = None
-_db: Any | None = None
-_collection: Collection | None = None
-_fs: GridFS | None = None
-_audio_uploads_collection: Collection | None = None
+_client: Optional[MongoClient] = None
+_db: Optional[Any] = None
+_collection: Optional[Collection] = None
+_fs: Optional[GridFS] = None
+_audio_uploads_collection: Optional[Collection] = None
 _db_available = False
 
 # Fallback store used in tests or when MongoDB is offline.
@@ -87,8 +87,8 @@ def _build_document(
     *,
     audio_path: str,  # path to the audio file
     language: str,  # detected language
-    transcript: str | None,  # transcribed text
-    extra_fields: dict[str, Any] | None = None,
+    transcript: Optional[str],  # transcribed text
+    extra_fields: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Assemble the document stored in MongoDB."""
     document: dict[str, Any] = {
@@ -107,10 +107,10 @@ def _build_document(
 def save_result(
     *,
     audio_path: str,
-    lang: str | None = None,
-    language: str | None = None,
-    transcript: str | None = None,
-    extra_fields: dict[str, Any] | None = None,
+    lang: Optional[str] = None,
+    language: Optional[str] = None,
+    transcript: Optional[str] = None,
+    extra_fields: Optional[dict[str, Any]] = None,
 ) -> Any:
     # decides on the detected language or falls back to "unknown"
     detected_language = language or lang or "unknown"
@@ -186,7 +186,7 @@ def get_all_results() -> list[dict[str, Any]]:
     return list(_in_memory_store)
 
 
-def get_most_recent_unprocessed_audio_file() -> tuple[str, bytes] | None:
+def get_most_recent_unprocessed_audio_file() -> Optional[tuple[str, bytes]]:
     """
     Get the most recent unprocessed audio file from GridFS.
     """
